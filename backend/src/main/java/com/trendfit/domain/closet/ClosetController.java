@@ -1,5 +1,6 @@
 package com.trendfit.domain.closet;
 
+import com.trendfit.domain.closet.dto.ClothingItemResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,8 +32,8 @@ public class ClosetController {
     }
 
     @GetMapping("/items")
-    public List<ClothingItem> getItems(@RequestParam("userId") Long userId) {
-        // TODO: ClothingItemRepository.findAllByUserId(userId) 위임
+    public List<ClothingItemResponse> getItems(@RequestParam("userId") Long userId) {
+        // TODO: ClothingItemRepository.findAllByUserId(userId) 조회 후 ClothingItemResponse.from()으로 변환
         throw new UnsupportedOperationException("3주차 구현 예정");
     }
 }
