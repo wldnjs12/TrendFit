@@ -1,0 +1,54 @@
+package com.trendfit.domain.user.service;
+
+import com.trendfit.domain.user.entity.User;
+import com.trendfit.domain.user.entity.UserPreference;
+import com.trendfit.domain.user.repository.UserPreferenceRepository;
+import com.trendfit.domain.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * 온보딩 취향 프로필 등록/조회. (PRD 4.2, service-policy.md §1)
+ */
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final UserPreferenceRepository userPreferenceRepository;
+
+    @Transactional
+    public UserPreference upsertPreference(Long userId, List<String> styleTags, String bodyInfo) {
+        validateStyleTags(styleTags);
+        String joinedTags = String.join(",", styleTags);
+
+        return userPreferenceRepository.findByUserId(userId)
+                .map(existing -> {
+                    existing.updatePreference(joinedTags, bodyInfo);
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자: " + userId));
+                    return userPreferenceRepository.save(new UserPreference(user, joinedTags, bodyInfo));
+                });
+    }
+
+    @Transactional(readOnly = true)
+    public UserPreference getPreference(Long userId) {
+        return userPreferenceRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("온보딩이 완료되지 않은 사용자: " + userId));
+    }
+
+    private void validateStyleTags(List<String> styleTags) {
+        if (styleTags == null || styleTags.isEmpty()) {
+            throw new IllegalArgumentException("스타일 취향은 최소 1개 이상 선택해야 합니다.");
+        }
+        for (String tag : styleTags) {
+            UserPreference.StyleTag.fromLabel(tag);
+        }
+    }
+}
