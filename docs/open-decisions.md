@@ -28,7 +28,7 @@
 | # | 항목 | 현재 옵션 | 결정이 필요한 이유 | 영향받는 컨텍스트 |
 |---|---|---|---|---|
 | B1 | **백엔드 배포처** | Render vs Railway vs Fly.io | 무료 티어 한도, MySQL 제공 여부, 콜드스타트 특성이 달라 최종 1곳 확정 필요 | 인프라 |
-| B2 | **기존 스캐폴드와의 정합성** | 최초 스캐폴드는 컨텍스트 폴더에 flat 구조(controller/entity/repository가 서브폴더 없이 위치), 본 문서(conventions.md)는 계층별 서브패키지 채택 | 실제 구현 착수 전 스캐폴드를 conventions.md §2 구조로 정리해야 함 | 전체 |
+| B2 | **기존 스캐폴드와의 정합성** | ✅ 결정됨: closet/user/trend/recommendation 4개 컨텍스트를 conventions.md §2의 controller/service/repository/entity/dto 서브패키지 구조로 정리 (2026-07-27) | 실제 구현 착수 전 스캐폴드를 conventions.md §2 구조로 정리해야 함 | 전체 |
 | B3 | **User 엔티티 인증 필드 보강** | 최초 스캐폴드의 `User`는 email/nickname만 보유, OAuth 관련 필드(`authProvider`, `oauthId`) 없음 | conventions.md §4(Google OAuth2 채택)에 맞춰 필드 추가 필요 | User |
 | B4 | **Recommendation의 포트 인터페이스 구체 설계** | `ClosetQueryPort` 등 포트 명칭·위치는 예시로만 제시, 실제 메서드 시그니처 미정 | 4주차 추천 엔진 구현 착수 전 확정 필요 | Recommendation, Closet, Trend, User |
 
@@ -46,4 +46,5 @@
 
 ## 결정 완료
 
-*(아직 없음 — 항목이 확정되는 대로 이 섹션으로 이동)*
+- **B2. 기존 스캐폴드와의 정합성** — ✅ 결정됨: closet/user/trend/recommendation 4개 컨텍스트를
+  conventions.md §2의 controller/service/repository/entity/dto 서브패키지 구조로 정리 (2026-07-27)
