@@ -1,0 +1,105 @@
+package com.trendfit.domain.closet.service;
+
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.messages.Base64ImageSource;
+import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.ImageBlockParam;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.anthropic.models.messages.TextBlockParam;
+import com.trendfit.global.config.ClaudeProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+
+/**
+ * 옷장 등록 시 Claude Vision을 호출해 카테고리/색상/패턴/크롭 좌표를 추출한다.
+ * 등록 요청당 1회만 호출하며(이미지 여러 장을 한 번에 묶어서), 이후 반복 상호작용(추천 요청)은
+ * 이 결과를 텍스트 태그로 재사용할 뿐 Vision을 다시 호출하지 않는다
+ * (CLAUDE.md 원칙 #3, PRD 6.5 비용 최적화).
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ClaudeVisionTagger {
+
+    private static final long MAX_TOKENS = 4096L;
+
+    private final AnthropicClient anthropicClient;
+    private final ClaudeProperties claudeProperties;
+
+    public List<ClothingTagExtraction> tagAll(List<MultipartFile> images) {
+        if (images.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            return callClaude(images).items();
+        } catch (Exception e) {
+            log.warn("[ClaudeVisionTagger] 태깅 실패: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private ClothingTagExtractionResult callClaude(List<MultipartFile> images) throws IOException {
+        List<ContentBlockParam> blocks = new ArrayList<>();
+        blocks.add(ContentBlockParam.ofText(TextBlockParam.builder().text(buildPrompt(images.size())).build()));
+
+        for (MultipartFile image : images) {
+            Base64ImageSource source = Base64ImageSource.builder()
+                    .data(Base64.getEncoder().encodeToString(image.getBytes()))
+                    .mediaType(toMediaType(image.getContentType()))
+                    .build();
+            blocks.add(ContentBlockParam.ofImage(ImageBlockParam.builder().source(source).build()));
+        }
+
+        StructuredMessageCreateParams<ClothingTagExtractionResult> params = MessageCreateParams.builder()
+                .model(claudeProperties.getModel())
+                .maxTokens(MAX_TOKENS)
+                .outputConfig(ClothingTagExtractionResult.class)
+                .addUserMessageOfBlockParams(blocks)
+                .build();
+
+        List<ClothingTagExtractionResult> results = anthropicClient.messages().create(params).content().stream()
+                .flatMap(block -> block.text().stream())
+                .map(typed -> typed.text())
+                .toList();
+
+        if (results.isEmpty()) {
+            throw new IllegalStateException("Claude 응답에 text 블록이 없음");
+        }
+        return results.get(0);
+    }
+
+    private String buildPrompt(int imageCount) {
+        return """
+                다음은 사용자가 옷장에 등록하려는 의류 사진 %d장이다. 각 사진에서 다음을 추출하라:
+                - category: TOP, BOTTOM, OUTER, DRESS, SHOES, ACCESSORY 중 하나
+                - color: 짧은 한국어 색상명 (예: "화이트", "버건디")
+                - pattern: 짧은 한국어 패턴명 (예: "무지", "스트라이프"), 판단 어려우면 null
+                - cropBox: 옷 부분만 감싸는 사각형을 이미지 전체 크기 대비 0~1 정규화 좌표로
+                  {x, y, width, height} 형태로 표현 (x, y는 좌상단 기준)
+
+                이미지는 첨부된 순서대로 [0], [1], ... 이다. 각 항목의 index는 이 순서와
+                정확히 일치해야 하며, 모든 이미지에 대해 하나씩 항목을 반환하라.
+                """.formatted(imageCount);
+    }
+
+    private Base64ImageSource.MediaType toMediaType(String contentType) {
+        if (contentType == null) {
+            return Base64ImageSource.MediaType.IMAGE_JPEG;
+        }
+        return switch (contentType) {
+            case "image/png" -> Base64ImageSource.MediaType.IMAGE_PNG;
+            case "image/gif" -> Base64ImageSource.MediaType.IMAGE_GIF;
+            case "image/webp" -> Base64ImageSource.MediaType.IMAGE_WEBP;
+            default -> Base64ImageSource.MediaType.IMAGE_JPEG;
+        };
+    }
+}

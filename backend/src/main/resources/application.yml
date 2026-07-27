@@ -5,6 +5,11 @@ spring:
   application:
     name: trendfit
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
   datasource:
     url: jdbc:mysql://localhost:3306/trendfit?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USERNAME:trendfit}
@@ -34,3 +39,7 @@ trendfit:
       - https://www.vogue.co.kr/feed/
       - https://www.wkorea.com/feed/
       - https://hypebeast.kr/feed
+  storage:
+    local:
+      # 로컬 개발 전용. 배포 전 클라우드 구현체(Cloudflare R2 등)로 교체한다 (A4, 2026-07-27 결정)
+      base-dir: ./storage/images
