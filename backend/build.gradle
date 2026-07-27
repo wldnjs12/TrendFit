@@ -29,6 +29,9 @@ dependencies {
 	// 트렌드 수집: RSS/Atom 파싱 (PRD 4.2 F1)
 	implementation 'com.rometools:rome:2.1.0'
 
+	// Claude API 클라이언트 (global.config.ClaudeClientConfig, 트렌드 정제·추천 엔진에서 공용)
+	implementation 'com.anthropic:anthropic-java:2.52.0'
+
 	// Scheduling is included in spring-context (already transitively available via spring-boot-starter)
 
 	// Lombok
