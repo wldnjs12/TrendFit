@@ -1,0 +1,17 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: trendfit-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: trendfit
+      MYSQL_USER: trendfit
+      MYSQL_PASSWORD: trendfit
+    ports:
+      - "3306:3306"
+    volumes:
+      - trendfit-mysql-data:/var/lib/mysql
+
+volumes:
+  trendfit-mysql-data:

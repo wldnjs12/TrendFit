@@ -1,0 +1,44 @@
+# ---- Java / Gradle (backend) ----
+backend/.gradle/
+backend/build/
+backend/out/
+backend/!gradle/wrapper/gradle-wrapper.jar
+*.class
+HELP.md
+
+# ---- Spring Boot ----
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-secret.yml
+
+# ---- Flutter / Dart (app) ----
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/.pub-cache/
+app/.pub/
+app/build/
+app/ios/
+app/android/
+app/web/
+app/macos/
+app/windows/
+app/linux/
+app/*.iml
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ---- Env / Secrets ----
+.env
+.env.local
+**/application-secret.yml
+*.pem
+*.key
+
+# ---- Logs ----
+*.log
+logs/

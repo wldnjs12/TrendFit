@@ -1,0 +1,22 @@
+name: trendfit
+description: "TrendFit - 트렌드를 내 옷장으로 번역해주는 AI 스타일리스트 앱"
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  http: ^1.2.1        # 백엔드 REST API 호출
+  provider: ^6.1.2     # 취향 프로필 / 옷장 상태 관리
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
