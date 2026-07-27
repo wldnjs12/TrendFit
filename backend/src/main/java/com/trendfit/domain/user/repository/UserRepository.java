@@ -1,5 +1,6 @@
-package com.trendfit.domain.user;
+package com.trendfit.domain.user.repository;
 
+import com.trendfit.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

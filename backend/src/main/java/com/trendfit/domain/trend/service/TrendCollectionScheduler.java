@@ -1,5 +1,6 @@
-package com.trendfit.domain.trend;
+package com.trendfit.domain.trend.service;
 
+import com.trendfit.domain.trend.repository.TrendKeywordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

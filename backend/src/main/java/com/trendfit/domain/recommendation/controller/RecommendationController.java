@@ -1,4 +1,4 @@
-package com.trendfit.domain.recommendation;
+package com.trendfit.domain.recommendation.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

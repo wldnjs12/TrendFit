@@ -1,4 +1,4 @@
-package com.trendfit.domain.trend;
+package com.trendfit.domain.trend.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

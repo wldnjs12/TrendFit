@@ -1,6 +1,6 @@
-package com.trendfit.domain.closet;
+package com.trendfit.domain.closet.entity;
 
-import com.trendfit.domain.user.User;
+import com.trendfit.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

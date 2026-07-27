@@ -1,6 +1,6 @@
 package com.trendfit.domain.closet.dto;
 
-import com.trendfit.domain.closet.ClothingItem;
+import com.trendfit.domain.closet.entity.ClothingItem;
 
 import java.time.LocalDateTime;
 

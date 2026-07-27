@@ -1,5 +1,6 @@
-package com.trendfit.domain.trend;
+package com.trendfit.domain.trend.repository;
 
+import com.trendfit.domain.trend.entity.TrendKeyword;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;

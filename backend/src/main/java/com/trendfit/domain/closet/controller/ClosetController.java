@@ -1,4 +1,4 @@
-package com.trendfit.domain.closet;
+package com.trendfit.domain.closet.controller;
 
 import com.trendfit.domain.closet.dto.ClothingItemResponse;
 import lombok.RequiredArgsConstructor;
