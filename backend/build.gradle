@@ -26,6 +26,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
+	// 트렌드 수집: RSS/Atom 파싱 (PRD 4.2 F1)
+	implementation 'com.rometools:rome:2.1.0'
+
 	// Scheduling is included in spring-context (already transitively available via spring-boot-starter)
 
 	// Lombok

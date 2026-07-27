@@ -30,3 +30,7 @@ trendfit:
     api-key: ${WEATHER_API_KEY:}
   trend-batch:
     cron: "0 0 3 * * *"   # 매일 새벽 3시 트렌드 수집 배치 실행
+    sources:               # service-policy.md §3 확정 소스 (2026-07-27)
+      - https://www.vogue.co.kr/feed/
+      - https://www.wkorea.com/feed/
+      - https://hypebeast.kr/feed
