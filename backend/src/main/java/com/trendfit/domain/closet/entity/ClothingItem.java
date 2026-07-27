@@ -1,6 +1,5 @@
 package com.trendfit.domain.closet.entity;
 
-import com.trendfit.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,9 +25,8 @@ public class ClothingItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -65,9 +63,9 @@ public class ClothingItem {
         this.createdAt = LocalDateTime.now();
     }
 
-    public ClothingItem(User user, Category category, String color, String pattern,
+    public ClothingItem(Long userId, Category category, String color, String pattern,
                          String imagePath, String croppedImagePath, Source source) {
-        this.user = user;
+        this.userId = userId;
         this.category = category;
         this.color = color;
         this.pattern = pattern;

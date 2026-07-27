@@ -29,7 +29,7 @@
 |---|---|---|---|---|
 | B1 | **백엔드 배포처** | Render vs Railway vs Fly.io | 무료 티어 한도, MySQL 제공 여부, 콜드스타트 특성이 달라 최종 1곳 확정 필요 | 인프라 |
 | B2 | **기존 스캐폴드와의 정합성** | ✅ 결정됨: closet/user/trend/recommendation 4개 컨텍스트를 conventions.md §2의 controller/service/repository/entity/dto 서브패키지 구조로 정리 (2026-07-27) | 실제 구현 착수 전 스캐폴드를 conventions.md §2 구조로 정리해야 함 | 전체 |
-| B3 | **User 엔티티 인증 필드 보강** | 최초 스캐폴드의 `User`는 email/nickname만 보유, OAuth 관련 필드(`authProvider`, `oauthId`) 없음 | conventions.md §4(Google OAuth2 채택)에 맞춰 필드 추가 필요 | User |
+| B3 | **User 엔티티 인증 필드 보강** | ✅ 결정됨: `User`에 `authProvider`(enum, 현재 GOOGLE만) / `oauthId` 필드 추가, (authProvider, oauthId) 유니크 제약 추가 (2026-07-27) | conventions.md §4(Google OAuth2 채택)에 맞춰 필드 추가 필요 | User |
 | B4 | **Recommendation의 포트 인터페이스 구체 설계** | `ClosetQueryPort` 등 포트 명칭·위치는 예시로만 제시, 실제 메서드 시그니처 미정 | 4주차 추천 엔진 구현 착수 전 확정 필요 | Recommendation, Closet, Trend, User |
 
 > B 섹션은 코드 변경을 수반하므로, 각 항목을 해결하며 이 문서의 해당 행을 "✅ 결정됨"으로 갱신한다.
@@ -48,3 +48,5 @@
 
 - **B2. 기존 스캐폴드와의 정합성** — ✅ 결정됨: closet/user/trend/recommendation 4개 컨텍스트를
   conventions.md §2의 controller/service/repository/entity/dto 서브패키지 구조로 정리 (2026-07-27)
+- **B3. User 엔티티 인증 필드 보강** — ✅ 결정됨: `authProvider`(enum, GOOGLE) / `oauthId` 필드와
+  유니크 제약 추가 (2026-07-27)

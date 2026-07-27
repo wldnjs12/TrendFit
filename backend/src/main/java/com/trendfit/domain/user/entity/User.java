@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * PRD 6.3 데이터 모델 - User 참고.
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = {"auth_provider", "oauth_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
@@ -27,6 +27,13 @@ public class User {
     @Column(nullable = false)
     private String nickname;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuthProvider authProvider;
+
+    @Column(nullable = false)
+    private String oauthId;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -35,8 +42,12 @@ public class User {
         this.createdAt = LocalDateTime.now();
     }
 
-    public User(String email, String nickname) {
+    public User(String email, String nickname, AuthProvider authProvider, String oauthId) {
         this.email = email;
         this.nickname = nickname;
+        this.authProvider = authProvider;
+        this.oauthId = oauthId;
     }
+
+    public enum AuthProvider { GOOGLE }
 }

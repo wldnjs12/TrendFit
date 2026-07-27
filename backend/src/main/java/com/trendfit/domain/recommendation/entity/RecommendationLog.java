@@ -1,6 +1,5 @@
 package com.trendfit.domain.recommendation.entity;
 
-import com.trendfit.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -23,9 +22,8 @@ public class RecommendationLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(length = 500, nullable = false)
     private String requestText; // 사용자의 자연어 요청 원문
@@ -44,8 +42,8 @@ public class RecommendationLog {
         this.createdAt = LocalDateTime.now();
     }
 
-    public RecommendationLog(User user, String requestText, String resultItemIdsJson, String plusOneItemJson) {
-        this.user = user;
+    public RecommendationLog(Long userId, String requestText, String resultItemIdsJson, String plusOneItemJson) {
+        this.userId = userId;
         this.requestText = requestText;
         this.resultItemIdsJson = resultItemIdsJson;
         this.plusOneItemJson = plusOneItemJson;
