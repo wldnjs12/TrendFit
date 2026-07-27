@@ -41,8 +41,20 @@
 | Recommendation | Trend | 최신 트렌드 키워드 조회 | `TrendQueryPort` |
 | Recommendation | Closet | '+1 아이템' 구매 확정 시 자동 등록(쓰기) | `ClosetCommandPort` |
 
-> 포트 인터페이스의 정확한 위치(컨텍스트 자기 패키지 내부 vs 별도 contracts 패키지)와 세부 시그니처는
-> 구현 단계에서 확정한다. 원칙은 "**경계를 넘는 참조는 ID 또는 명시적 인터페이스**"이다.
+> ✅ 결정됨(B4, 2026-07-27): 포트 인터페이스는 **각 컨텍스트 자기 패키지 하위 `domain.<context>.port`**에
+> 둔다(별도 contracts 패키지 대신). 소유 컨텍스트의 Service가 포트를 직접 `implements` 한다
+> (별도 어댑터 클래스 없이). 확정된 시그니처:
+>
+> | 포트 | 위치 | 메서드 | 구현체 |
+> |---|---|---|---|
+> | `UserPreferencePort` | `domain.user.port` | `Optional<UserPreferenceView> findPreference(Long userId)` | `UserService` |
+> | `ClosetQueryPort` | `domain.closet.port` | `List<ClosetItemView> findAllByUserId(Long userId)` | `ClosetService` |
+> | `TrendQueryPort` | `domain.trend.port` | `List<TrendKeywordView> findLatestKeywords()` | `TrendQueryService` |
+> | `ClosetCommandPort` | `domain.closet.port` | `Long registerAutoPurchasedItem(AutoPurchaseItemCommand command)` | `ClosetService` |
+>
+> `ClosetItemView`는 `toPromptTag()`를 제공해 `"[ID:%d] 카테고리/색상/패턴/핏/재질"` 형태로
+> 직렬화한다(ClothingItem.toPromptTag()와 동일 포맷). `ClosetCommandPort`는 4주차 추천 엔진
+> 자체에는 쓰이지 않고, 6주차 '+1 아이템' 구매 콜백 연동 시점에 실제로 호출된다.
 
 ## 3. 컨텍스트별 책임 & 핵심 엔티티
 

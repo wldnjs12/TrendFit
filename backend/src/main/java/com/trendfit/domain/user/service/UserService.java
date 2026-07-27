@@ -2,20 +2,25 @@ package com.trendfit.domain.user.service;
 
 import com.trendfit.domain.user.entity.User;
 import com.trendfit.domain.user.entity.UserPreference;
+import com.trendfit.domain.user.port.UserPreferencePort;
+import com.trendfit.domain.user.port.UserPreferenceView;
 import com.trendfit.domain.user.repository.UserPreferenceRepository;
 import com.trendfit.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 온보딩 취향 프로필 등록/조회. (PRD 4.2, service-policy.md §1)
+ * UserPreferencePort를 구현해 Recommendation에 취향 조회를 제공한다(domain-design.md §2, B4 결정).
  */
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserPreferencePort {
 
     private final UserRepository userRepository;
     private final UserPreferenceRepository userPreferenceRepository;
@@ -41,6 +46,22 @@ public class UserService {
     public UserPreference getPreference(Long userId) {
         return userPreferenceRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("온보딩이 완료되지 않은 사용자: " + userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserPreferenceView> findPreference(Long userId) {
+        return userPreferenceRepository.findByUserId(userId)
+                .map(preference -> new UserPreferenceView(
+                        parseStyleTags(preference.getStyleTags()),
+                        preference.getBodyInfo()));
+    }
+
+    private List<String> parseStyleTags(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return Arrays.asList(raw.split(","));
     }
 
     private void validateStyleTags(List<String> styleTags) {
