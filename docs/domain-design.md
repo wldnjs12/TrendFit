@@ -68,7 +68,8 @@
 
 - 추천 엔진은 이 엔티티들을 `"[ID] 카테고리/색상/핏/재질"` 형태의 텍스트로 직렬화해 프롬프트에 주입한다.
   이미지 자체는 프롬프트에 포함하지 않는다(비용 최적화).
-- 🔸 이미지 저장소(로컬 파일시스템 vs 클라우드 스토리지)는 미정 → [open-decisions.md](open-decisions.md)
+- 이미지 저장소는 `ImageStorage` 인터페이스로 추상화한다: 로컬 개발은 `LocalFileImageStorage`,
+  배포 전 클라우드 구현체(Cloudflare R2 등)로 교체한다(service-policy.md §2, 2026-07-27 결정).
 
 ### 3.3 Trend — 트렌드 수집
 
