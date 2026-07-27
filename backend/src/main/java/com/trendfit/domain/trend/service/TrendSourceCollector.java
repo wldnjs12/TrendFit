@@ -10,7 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -29,6 +32,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TrendSourceCollector {
 
+    private static final int TIMEOUT_MILLIS = (int) Duration.ofSeconds(5).toMillis();
+
     private final TrendSourceProperties trendSourceProperties;
 
     public List<RawTrendArticle> fetchLatestArticles() {
@@ -43,9 +48,18 @@ public class TrendSourceCollector {
         return articles;
     }
 
+    /**
+     * Rome의 XmlReader(URL)/XmlReader(URLConnection) 생성자는 2.1.0에서 deprecated 되어,
+     * 커넥션(타임아웃 포함)은 직접 열고 InputStream만 XmlReader에 넘긴다.
+     */
     private List<RawTrendArticle> fetchFeed(String feedUrl) throws IOException, FeedException {
+        URLConnection connection = new URL(feedUrl).openConnection();
+        connection.setConnectTimeout(TIMEOUT_MILLIS);
+        connection.setReadTimeout(TIMEOUT_MILLIS);
+
         SyndFeedInput input = new SyndFeedInput();
-        try (XmlReader reader = new XmlReader(new URL(feedUrl))) {
+        try (InputStream stream = connection.getInputStream();
+             XmlReader reader = new XmlReader(stream)) {
             SyndFeed feed = input.build(reader);
             String sourceName = feed.getTitle();
 
