@@ -3,11 +3,14 @@
 ## 로컬 실행
 
 ```bash
-docker compose up -d          # MySQL 컨테이너 실행
-export CLAUDE_API_KEY=sk-...  # Claude API 키 (커밋 금지)
-export WEATHER_API_KEY=...    # 공공 날씨 API 키
+docker compose up -d           # MySQL 컨테이너 실행
+cp .env.example .env           # 최초 1회 — 값 채우기 (커밋 금지, spring-dotenv가 자동 로드)
 ./gradlew bootRun
 ```
+
+환경변수는 매번 `export` 할 필요 없이 `backend/.env`에 넣어두면 `spring-dotenv`가 부팅 시
+자동으로 읽는다. 채워야 하는 값은 `.env.example` 참고 (DB 계정, `TRENDFIT_ID`/`TRENDFIT_PASSWORD`
+— Google OAuth 클라이언트 ID/JWT 서명키, `CLAUDE_API_KEY`, `WEATHER_API_KEY`).
 
 `gradlew` 래퍼가 없다면 IntelliJ로 프로젝트를 열거나, 로컬 Gradle이 있다면 `gradle wrapper`로 생성하세요.
 

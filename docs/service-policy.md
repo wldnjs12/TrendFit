@@ -39,10 +39,11 @@ TrendFit의 정책을 회원 / 옷장 / 트렌드 수집 / 추천 / 구매 연�
 - 최소 등록 기준은 순수 개수가 아니라 **카테고리 조합**을 요구한다. 상의/하의(또는 원피스) 조합이
   없으면 재킷만 3개 있어도 코디를 조립할 수 없기 때문이다. Recommendation이 이 조건을 조회하는
   방식(예: `ClosetQueryPort`에 활성화 여부 조회 메서드 추가)은 구현 단계(4주차, B4)에서 확정한다.
-- **이미지 저장소 (✅ 결정됨 2026-07-27):** 로컬 개발 단계에서는 로컬 파일시스템에 저장하되,
-  `ImageStorage` 인터페이스로 추상화해 `LocalFileImageStorage` 구현체를 둔다. Render/Railway
-  배포 직전에 `CloudflareR2ImageStorage`(또는 동급 구현)로 교체한다 — 인터페이스 뒤에서
-  교체되므로 ClosetService 등 호출 측 코드는 바뀌지 않는다.
+- **이미지 저장소 (✅ 결정됨 2026-07-27, R2 구현 2026-07-29):** 로컬 개발 단계에서는 로컬
+  파일시스템에 저장하되, `ImageStorage` 인터페이스로 추상화해 `LocalFileImageStorage` 구현체를
+  둔다. Railway 배포는 `R2ImageStorage`(Cloudflare R2)로 전환한다 — 인터페이스 뒤에서
+  교체되므로 ClosetService 등 호출 측 코드는 바뀌지 않는다. 전환은
+  `trendfit.storage.provider=r2` 설정 하나로 이루어진다.
 
 ---
 

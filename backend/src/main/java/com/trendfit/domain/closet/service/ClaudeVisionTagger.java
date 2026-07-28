@@ -52,9 +52,10 @@ public class ClaudeVisionTagger {
         blocks.add(ContentBlockParam.ofText(TextBlockParam.builder().text(buildPrompt(images.size())).build()));
 
         for (MultipartFile image : images) {
+            byte[] bytes = image.getBytes();
             Base64ImageSource source = Base64ImageSource.builder()
-                    .data(Base64.getEncoder().encodeToString(image.getBytes()))
-                    .mediaType(toMediaType(image.getContentType()))
+                    .data(Base64.getEncoder().encodeToString(bytes))
+                    .mediaType(detectMediaType(bytes))
                     .build();
             blocks.add(ContentBlockParam.ofImage(ImageBlockParam.builder().source(source).build()));
         }
@@ -91,15 +92,40 @@ public class ClaudeVisionTagger {
                 """.formatted(imageCount);
     }
 
-    private Base64ImageSource.MediaType toMediaType(String contentType) {
-        if (contentType == null) {
-            return Base64ImageSource.MediaType.IMAGE_JPEG;
+    /**
+     * 이미지 실제 바이트(매직 넘버)로 포맷을 판별한다. 업로드하는 브라우저/클라이언트가
+     * Content-Type 헤더를 붙이지 않거나 잘못 붙이는 경우가 흔해서(예: PNG인데
+     * application/octet-stream 또는 image/jpeg로 옴), 선언된 Content-Type을 그대로 믿으면
+     * Claude가 "선언된 타입과 실제 이미지가 다르다"며 400을 반환한다 — 그래서 클라이언트가
+     * 보낸 값 대신 바이트 시그니처로 직접 판별한다.
+     */
+    private Base64ImageSource.MediaType detectMediaType(byte[] bytes) {
+        if (startsWith(bytes, PNG_SIGNATURE)) {
+            return Base64ImageSource.MediaType.IMAGE_PNG;
         }
-        return switch (contentType) {
-            case "image/png" -> Base64ImageSource.MediaType.IMAGE_PNG;
-            case "image/gif" -> Base64ImageSource.MediaType.IMAGE_GIF;
-            case "image/webp" -> Base64ImageSource.MediaType.IMAGE_WEBP;
-            default -> Base64ImageSource.MediaType.IMAGE_JPEG;
-        };
+        if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0x47 && (bytes[1] & 0xFF) == 0x49 && (bytes[2] & 0xFF) == 0x46) {
+            return Base64ImageSource.MediaType.IMAGE_GIF;
+        }
+        if (bytes.length >= 12
+                && (bytes[0] & 0xFF) == 0x52 && (bytes[1] & 0xFF) == 0x49 && (bytes[2] & 0xFF) == 0x46 && (bytes[3] & 0xFF) == 0x46
+                && (bytes[8] & 0xFF) == 0x57 && (bytes[9] & 0xFF) == 0x45 && (bytes[10] & 0xFF) == 0x42 && (bytes[11] & 0xFF) == 0x50) {
+            return Base64ImageSource.MediaType.IMAGE_WEBP;
+        }
+        // JPEG(0xFFD8)를 포함해 그 외에는 JPEG로 취급한다 — Claude가 지원하는 나머지 포맷 중 가장 흔한 형식.
+        return Base64ImageSource.MediaType.IMAGE_JPEG;
+    }
+
+    private static final int[] PNG_SIGNATURE = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+
+    private boolean startsWith(byte[] bytes, int[] signature) {
+        if (bytes.length < signature.length) {
+            return false;
+        }
+        for (int i = 0; i < signature.length; i++) {
+            if ((bytes[i] & 0xFF) != signature[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }

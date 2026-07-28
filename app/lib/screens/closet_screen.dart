@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../config/app_config.dart';
+import '../config/app_session.dart';
+import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
 import '../services/api_service.dart';
+import '../widgets/trendfit_top_bar.dart';
 import 'closet_confirm_screen.dart';
+import 'closet_upload_screen.dart';
 
-/// 옷장 등록/조회 화면 (PRD 4.2 F2, architecture.md §3 "2. 옷장 등록")
-/// - 사진 여러 장 업로드 -> Vision 자동 태깅 + 크롭
-/// - 애매한 속성(핏/재질)은 ClosetConfirmScreen에서 보정
+/// 내 옷장 v2 — 보유 의류 조회/등록. (Figma "내 옷장 v2", PRD 4.2 F2)
+/// 사진 업로드 -> Vision 자동 태깅 + 크롭은 [ClosetUploadScreen]에서, 애매한 속성(핏/재질)
+/// 보정은 [ClosetConfirmScreen]에서 처리한다.
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
 
@@ -17,119 +20,202 @@ class ClosetScreen extends StatefulWidget {
 
 class _ClosetScreenState extends State<ClosetScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
-  final ImagePicker _picker = ImagePicker();
 
+  static const _categories = ['전체', 'TOP', 'BOTTOM', 'OUTER', 'DRESS', 'SHOES', 'ACCESSORY'];
+  static const _categoryLabels = {
+    'TOP': '상의',
+    'BOTTOM': '하의',
+    'OUTER': '아우터',
+    'DRESS': '원피스',
+    'SHOES': '신발',
+    'ACCESSORY': '액세서리',
+  };
+
+  String _filter = '전체';
   late Future<List<ClothingItem>> _itemsFuture;
 
   @override
   void initState() {
     super.initState();
-    _itemsFuture = _apiService.fetchClosetItems(AppConfig.currentUserId);
+    _itemsFuture = _apiService.fetchClosetItems(AppSession.userId!);
   }
 
   void _reload() {
     setState(() {
-      _itemsFuture = _apiService.fetchClosetItems(AppConfig.currentUserId);
+      _itemsFuture = _apiService.fetchClosetItems(AppSession.userId!);
     });
   }
 
-  Future<void> _pickAndUpload() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isEmpty) return;
-
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+  Future<void> _openUpload() async {
+    final uploaded = await Navigator.of(context).push<List<ClothingItem>>(
+      MaterialPageRoute(builder: (_) => const ClosetUploadScreen()),
     );
+    if (uploaded == null || uploaded.isEmpty || !mounted) return;
 
-    try {
-      final uploaded = await _apiService.uploadClosetItems(AppConfig.currentUserId, images);
-      if (!mounted) return;
-      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-
-      if (uploaded.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('옷을 인식하지 못했어요. 다른 사진으로 다시 시도해주세요.')),
-        );
-        return;
-      }
-
-      final confirmedAll = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => ClosetConfirmScreen(items: uploaded)),
-      );
-      if (confirmedAll == true) {
-        _reload();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    final confirmedAll = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ClosetConfirmScreen(items: uploaded)),
+    );
+    if (confirmedAll == true) {
+      _reload();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('내 옷장')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _pickAndUpload,
-        icon: const Icon(Icons.add_a_photo_outlined),
-        label: const Text('사진으로 옷 등록'),
+      appBar: const TrendFitTopBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openUpload,
+        backgroundColor: AppColors.black,
+        shape: const RoundedRectangleBorder(),
+        child: const Icon(Icons.add, color: AppColors.white),
       ),
-      body: FutureBuilder<List<ClothingItem>>(
-        future: _itemsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('옷장을 불러오지 못했어요.\n${snapshot.error}', textAlign: TextAlign.center));
-          }
+      body: SafeArea(
+        top: false,
+        child: FutureBuilder<List<ClothingItem>>(
+          future: _itemsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('옷장을 불러오지 못했어요.\n${snapshot.error}', textAlign: TextAlign.center));
+            }
 
-          final items = snapshot.data ?? [];
-          if (items.isEmpty) {
-            return const Center(child: Text('옷장이 비어있어요. 사진을 올려보세요.'));
-          }
+            final items = (snapshot.data ?? [])
+                .where((item) => _filter == '전체' || item.category == _filter)
+                .toList();
 
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              final imagePath = item.croppedImagePath ?? item.imagePath;
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover),
-                    if (!item.confirmed)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('보정 필요', style: TextStyle(color: Colors.white, fontSize: 10)),
-                        ),
-                      ),
-                  ],
+            return CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('PERSONAL COLLECTION',
+                            style: TextStyle(color: AppColors.textTertiary, fontSize: 12, letterSpacing: 1.2)),
+                        const SizedBox(height: 4),
+                        Text('내 옷장', style: AppTextStyles.displayHeavy.copyWith(fontSize: 28)),
+                        const SizedBox(height: 20),
+                        _buildFilterChips(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ),
-              );
-            },
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.78,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        if (index == items.length) return _addItemCard();
+                        return _itemCard(items[index]);
+                      },
+                      childCount: items.length + 1,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final selected = category == _filter;
+          final label = category == '전체' ? '전체' : (_categoryLabels[category] ?? category);
+          return ChoiceChip(
+            label: Text(label),
+            selected: selected,
+            onSelected: (_) => setState(() => _filter = category),
+            showCheckmark: false,
+            shape: const RoundedRectangleBorder(),
+            side: BorderSide(color: selected ? AppColors.black : AppColors.borderLight),
+            selectedColor: AppColors.black,
+            backgroundColor: AppColors.white,
+            labelStyle: TextStyle(color: selected ? AppColors.white : AppColors.textPrimary, fontSize: 13),
           );
         },
+      ),
+    );
+  }
+
+  Widget _itemCard(ClothingItem item) {
+    final imagePath = item.croppedImagePath ?? item.imagePath;
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(color: AppColors.chipBackground),
+          Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            child: Text(
+              _categoryLabels[item.category] ?? item.category,
+              style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (!item.confirmed)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(color: Colors.black54),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Text('보정 필요', style: TextStyle(color: AppColors.white, fontSize: 10)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addItemCard() {
+    return InkWell(
+      onTap: _openUpload,
+      child: DecoratedBox(
+        decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight, style: BorderStyle.solid)),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, color: AppColors.textTertiary),
+              SizedBox(height: 8),
+              Text('새 아이템 추가', style: TextStyle(color: AppColors.textTertiary, fontSize: 13)),
+            ],
+          ),
+        ),
       ),
     );
   }

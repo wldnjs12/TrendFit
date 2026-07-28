@@ -20,10 +20,11 @@
 | 프론트엔드 | Flutter (모바일 + **Flutter Web**) |
 | AI 연동 | Claude API (Vision + Text) |
 | 외부 API | 공공 날씨 API |
-| 배포 | 프론트: **Vercel** (Flutter Web 정적 빌드) / 백엔드: **Render 또는 Railway** |
+| 배포 | 프론트: **Vercel** (Flutter Web 정적 빌드) / 백엔드: **Railway** (B1, 2026-07-29 결정) |
 
 > Vercel은 Java 백엔드를 실행할 수 없다. 프론트(Flutter Web 빌드 산출물)만 Vercel에 올리고,
-> Spring Boot 백엔드는 별도로 Render/Railway에 배포한다. 두 곳 모두 GitHub 연동 시 push 기반 자동 배포를 지원한다.
+> Spring Boot 백엔드는 별도로 Railway에 배포한다(`backend/Dockerfile` 자동 감지, MySQL은 Railway
+> 플러그인). 두 곳 모두 GitHub 연동 시 push 기반 자동 배포를 지원한다.
 
 ## 3. 패키지 구조
 
@@ -51,13 +52,17 @@
 
 ## 4. UI 구조 (프론트엔드)
 
-**하단 네비게이션은 3탭: 홈 · 옷장 · 프로필.**
+**하단 네비게이션은 4탭: 홈 · 옷장 · 캘린더 · 프로필.** (Figma 디자인 확정, 2026-07-28 — 원래
+3탭 원칙에서 캘린더를 스트레치로 미뤄뒀으나, Figma 디자인 시안이 4탭으로 확정되며 승격했다.)
 
 - **홈 = 오늘의 코디.** 앱을 켜자마자 날씨+트렌드 기반으로 자동 뜬 오늘의 추천이 바로 보이고,
   그 위나 아래에 "흰 치마인데 뭐랑 매치하지?" 같은 걸 물어볼 수 있는 입력창(앵커 아이템 요청)이
   함께 있는 화면이다. "홈"과 "옷추천"을 별도 탭으로 나누지 않고 하나로 합쳐, 켜자마자 오늘 할 일이
-  바로 보이는 습관형 앱 패턴(Duolingo, 캘린더 앱 등)을 따른다. 탭이 적을수록 고민 없이 눌린다.
+  바로 보이는 습관형 앱 패턴(Duolingo, 캘린더 앱 등)을 따른다.
 - **옷장**: 보유 의류 조회·등록(사진 업로드 → Vision 태깅 → 크롭 → 스와이프 보정).
+- **캘린더**: 위클리 아카이브 — 날짜별로 그날 추천/기록된 코디를 돌아보는 회고용 조회 화면.
+  매일 반복 입력이 필요한 행동이 아니므로 홈의 습관 루프와 충돌하지 않는다고 판단해 4번째 탭으로
+  추가했다. `RecommendationLog` 이력 기반.
 - **프로필**: 취향 태그 설정, 계정 관리.
 
 화면별 상세 흐름은 [docs/architecture.md](docs/architecture.md) "사용자 흐름" 참고.
@@ -83,7 +88,7 @@
 # 백엔드
 cd backend
 docker compose up -d
-export CLAUDE_API_KEY=sk-...
+cp .env.example .env   # 최초 1회, 값 채우기(커밋 금지) — spring-dotenv가 부팅 시 자동 로드
 ./gradlew bootRun
 
 # 프론트 (모바일 개발 중)

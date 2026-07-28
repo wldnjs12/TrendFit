@@ -13,6 +13,10 @@ dependencies:
   http: ^1.2.1        # 백엔드 REST API 호출
   provider: ^6.1.2     # 취향 프로필 / 옷장 상태 관리
   image_picker: ^1.1.2  # 옷장 등록 시 사진 선택 (모바일+웹 공용)
+  google_fonts: ^6.2.1  # Figma 디자인 서체(Syne, Plus Jakarta Sans, Noto Sans KR) 적용
+  google_sign_in: ^6.2.1 # Google OAuth2 로그인 (conventions.md §4)
+  shared_preferences: ^2.3.2 # 로그인 세션(JWT) 로컬 영속화
+  geolocator: ^13.0.2 # 추천 요청 시 날씨 조회용 위치(위경도) 자동 감지
 
 dev_dependencies:
   flutter_test:

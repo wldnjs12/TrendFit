@@ -67,7 +67,7 @@
 
 | 엔티티 | 책임 | 핵심 속성(설계 기준) |
 |---|---|---|
-| `User` | 서비스 사용자 | id, email, nickname, authProvider(GOOGLE), oauthId, createdAt |
+| `User` | 서비스 사용자 | id, email, nickname, authProvider(GOOGLE), oauthId, role(USER/ADMIN), refreshToken, createdAt |
 | `UserPreference` | 온보딩에서 생성되는 취향 프로필 | id, userId, styleTags(콤마 구분 또는 다대다), 🔸 bodyInfo(선택) |
 
 ### 3.2 Closet — 옷장

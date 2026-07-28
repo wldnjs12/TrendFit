@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 
 /// 옷장 등록 시 핏/재질처럼 AI가 확신하지 못하는 속성을
 /// 틴더 스타일 스와이프로 1~2초 만에 보정하는 카드. (PRD 4.2 F2)
@@ -23,31 +24,39 @@ class SwipeConfirmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.white, border: Border.all(color: AppColors.borderSubtle)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(imageUrl, height: 240, fit: BoxFit.cover),
+            ClipRect(
+              child: Image.network(imageUrl, height: 280, fit: BoxFit.cover),
             ),
-            const SizedBox(height: 16),
-            Text(question, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            Text(question, style: AppTextStyles.koreanHeadline.copyWith(fontSize: 18)),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                IconButton.filledTonal(
+                IconButton(
                   onPressed: onReject,
-                  icon: const Icon(Icons.close),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.chipBackground,
+                    shape: const RoundedRectangleBorder(),
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  icon: const Icon(Icons.close, color: AppColors.textPrimary),
                 ),
-                IconButton.filled(
+                IconButton(
                   onPressed: onConfirm,
-                  icon: const Icon(Icons.check),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.black,
+                    shape: const RoundedRectangleBorder(),
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  icon: const Icon(Icons.check, color: AppColors.white),
                 ),
               ],
             ),

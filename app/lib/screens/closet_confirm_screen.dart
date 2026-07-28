@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../config/app_config.dart';
+import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
 import '../services/api_service.dart';
 import '../widgets/swipe_confirm_card.dart';
+import '../widgets/trendfit_top_bar.dart';
 
 /// 방금 등록한(미확정) 옷들의 핏/재질을 순서대로 보정한다. (PRD 4.2 F2)
 ///
@@ -91,24 +93,33 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
     final imagePath = _currentItem.croppedImagePath ?? _currentItem.imagePath;
 
     return Scaffold(
-      appBar: AppBar(title: Text('옷 보정 (${_itemIndex + 1}/${widget.items.length})')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: _phase == _Phase.fitQuestion
-              ? SwipeConfirmCard(
-                  imageUrl: _apiService.imageUrl(imagePath),
-                  question: _fitQuestions[_fitStep].$1,
-                  onConfirm: () {
-                    _fitConfirmed = true;
-                    _onFitDecision(true);
-                  },
-                  onReject: () {
-                    _fitConfirmed = false;
-                    _onFitDecision(false);
-                  },
-                )
-              : _buildMaterialPicker(),
+      appBar: TrendFitTopBar(
+        onBack: () => Navigator.of(context).pop(),
+        actions: [
+          Text('${_itemIndex + 1} / ${widget.items.length}',
+              style: AppTextStyles.trackedLabel.copyWith(color: AppColors.textPrimary)),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Center(
+            child: _phase == _Phase.fitQuestion
+                ? SwipeConfirmCard(
+                    imageUrl: _apiService.imageUrl(imagePath),
+                    question: _fitQuestions[_fitStep].$1,
+                    onConfirm: () {
+                      _fitConfirmed = true;
+                      _onFitDecision(true);
+                    },
+                    onReject: () {
+                      _fitConfirmed = false;
+                      _onFitDecision(false);
+                    },
+                  )
+                : _buildMaterialPicker(),
+          ),
         ),
       ),
     );
@@ -118,8 +129,8 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('재질을 골라주세요', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
+        Text('재질을 골라주세요', style: AppTextStyles.headingBold.copyWith(fontSize: 20)),
+        const SizedBox(height: 20),
         if (_submitting)
           const CircularProgressIndicator()
         else
@@ -128,9 +139,14 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: _materials.map((material) {
-              return ActionChip(
+              return ChoiceChip(
                 label: Text(material),
-                onPressed: () => _onMaterialPicked(material),
+                selected: false,
+                onSelected: (_) => _onMaterialPicked(material),
+                shape: const RoundedRectangleBorder(),
+                side: const BorderSide(color: AppColors.borderLight),
+                backgroundColor: AppColors.white,
+                labelStyle: const TextStyle(color: AppColors.textPrimary),
               );
             }).toList(),
           ),

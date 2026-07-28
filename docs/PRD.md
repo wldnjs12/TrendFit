@@ -135,9 +135,9 @@
 | 트렌드 번역 추천 엔진 | ✅ MVP (핵심) |
 | 날씨 연동 | ✅ MVP |
 | '+1 아이템' 제안 + 구매 시 자동 등록 | ✅ MVP |
+| 코디 캘린더(위클리 아카이브, 조회 전용) | ✅ MVP (Figma 디자인 확정으로 승격, 2026-07-28) |
 | 완전 배경 제거(누끼) | ⏸ 스트레치 |
 | SNS(인스타/핀터레스트) 직접 연동 | ⏸ 스트레치 |
-| 코디 캘린더 등록 | ⏸ 스트레치 |
 | 커뮤니티/공유 | ❌ 제외 |
 | 쇼핑몰 완전 연동(장바구니 등) | ❌ 제외 (제휴 링크 연결까지만) |
 
@@ -217,14 +217,19 @@ graph LR
 | `UserPreference` | id, userId(FK), styleTags(다대다 또는 콤마 구분), bodyInfo(선택) | 온보딩에서 생성되는 취향 프로필 |
 | `ClothingItem` | id, userId(FK), category, color, pattern, fit, material, imagePath, croppedImagePath, source(직접등록/자동등록), createdAt | 옷장의 핵심 엔티티, AI 프롬프트에는 이 태그 조합이 텍스트로 직렬화되어 전달됨 |
 | `TrendKeyword` | id, collectedDate, colorTag, itemTag, moodTag, sourceUrl | 0단계 배치가 적재하는 트렌드 데이터 |
-| `RecommendationLog` | id, userId(FK), requestText, resultItemIds, plusOneItem, createdAt | 추천 이력 (재추천/통계용, 스트레치에서 캘린더·통계 기능의 기반이 될 수 있음) |
+| `RecommendationLog` | id, userId(FK), requestText, resultItemIds, plusOneItem, createdAt | 추천 이력 (재추천용 + 캘린더/위클리 아카이브 조회의 기반 데이터. 착용 이력 통계는 스트레치) |
 
 ### 6.4 API 설계 개요 (발췌)
 
 | Method | Endpoint | 설명 |
 |---|---|---|
-| POST | `/api/users/signup` | 회원가입 |
-| POST | `/api/users/preferences` | 온보딩 취향 프로필 저장 |
+| POST | `/api/auth/google` | Google 액세스 토큰으로 로그인/가입, 액세스·리프레시 토큰 발급 (conventions.md §4) |
+| POST | `/api/auth/refresh` | 리프레시 토큰으로 액세스 토큰 재발급 |
+| POST | `/api/auth/logout` | 리프레시 토큰 무효화 (JWT 인증 필요) |
+| GET | `/api/users/me` | 회원관리 — 본인 계정 조회 (JWT 인증 필요) |
+| DELETE | `/api/users/me` | 회원관리 — 회원 탈퇴 (JWT 인증 필요) |
+| POST | `/api/users/onboarding` | 온보딩 취향/체형 프로필 저장 |
+| GET | `/api/users/onboarding` | 온보딩 완료 여부·취향 프로필 조회 |
 | POST | `/api/closet/items` | 옷 이미지 업로드 → Vision 태깅 → 크롭 처리 |
 | PATCH | `/api/closet/items/{id}/confirm` | 스와이프 보정 결과 반영 |
 | GET | `/api/closet/items` | 사용자 옷장 목록 조회 |
@@ -294,7 +299,7 @@ MVP는 무료 개인 프로젝트로 운영한다. 장기적으로 고려 가능
 
 - SNS(인스타그램, 핀터레스트) 기반 개인 취향 벡터 자동 추출
 - 완전한 배경 제거(누끼) 파이프라인 도입 (예: 오픈소스 세그멘테이션 모델 연동)
-- 코디 캘린더 및 착용 이력 기반 "Cost-per-wear" 통계
+- 착용 이력 기반 "Cost-per-wear" 통계 (코디 캘린더 자체는 MVP로 승격, §4.3 참고)
 - 옷장 규모 확대에 대응한 검색 기반 컨텍스트 축소(임베딩 검색 도입 검토)
 - 커뮤니티/공유 기능
 

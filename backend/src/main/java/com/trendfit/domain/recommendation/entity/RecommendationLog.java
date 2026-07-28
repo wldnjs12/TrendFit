@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 /**
  * 추천 요청/결과 이력. (PRD 6.3)
  * resultItemIds 와 plusOneItem 은 MVP 단계에서는 JSON 문자열로 단순 저장한다.
- * 추후 캘린더/통계 기능(스트레치)의 기반 데이터가 될 수 있다.
+ * 캘린더(위클리 아카이브) 조회의 기반 데이터로도 쓰인다. 착용 이력 통계는 스트레치.
  */
 @Entity
 @Table(name = "recommendation_logs")

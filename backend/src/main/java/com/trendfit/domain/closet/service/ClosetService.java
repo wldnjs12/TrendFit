@@ -54,7 +54,16 @@ public class ClosetService implements ClosetQueryPort, ClosetCommandPort {
             byte[] original = readBytes(image);
             String imagePath = imageStorage.save(original, image.getOriginalFilename());
 
-            byte[] cropped = ImageCropper.crop(original, extraction.cropBox());
+            // ImageCropper는 표준 javax.imageio 기반이라 WebP 등 일부 포맷은 디코딩하지 못한다
+            // (무신사/에이블리 등 CDN이 WebP를 자주 씀). 크롭에 실패해도 아이템 자체는 등록되도록
+            // 원본 이미지로 폴백한다 — 안 그러면 업로드 전체가 500으로 실패한다.
+            byte[] cropped;
+            try {
+                cropped = ImageCropper.crop(original, extraction.cropBox());
+            } catch (RuntimeException e) {
+                log.warn("[ClosetService] 크롭 실패, 원본 이미지로 대체 (index={}): {}", extraction.index(), e.getMessage());
+                cropped = original;
+            }
             String croppedImagePath = imageStorage.save(cropped, "cropped-" + image.getOriginalFilename());
 
             ClothingItem item = new ClothingItem(userId, category, extraction.color(), extraction.pattern(),

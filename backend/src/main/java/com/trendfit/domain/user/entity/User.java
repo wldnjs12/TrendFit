@@ -34,6 +34,14 @@ public class User {
     @Column(nullable = false)
     private String oauthId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    /** 발급된 리프레시 토큰(원문). 로그아웃 시 null로 비운다. (conventions.md §4) */
+    @Column(length = 512)
+    private String refreshToken;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -47,7 +55,22 @@ public class User {
         this.nickname = nickname;
         this.authProvider = authProvider;
         this.oauthId = oauthId;
+        this.role = Role.USER;
+    }
+
+    /** 로그인 시마다 최신 리프레시 토큰으로 교체한다. 로그아웃 시 null을 전달해 무효화한다. */
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public enum AuthProvider { GOOGLE }
+
+    /** 권한. (conventions.md §4 — USER/ADMIN, Spring Security 키는 ROLE_ 접두사) */
+    public enum Role {
+        USER, ADMIN;
+
+        public String key() {
+            return "ROLE_" + name();
+        }
+    }
 }

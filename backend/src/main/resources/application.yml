@@ -1,5 +1,6 @@
 server:
-  port: 8080
+  # Railway 등 PaaS는 리슨할 포트를 PORT 환경변수로 주입한다. 로컬 개발은 기본값 8080을 쓴다.
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -11,7 +12,9 @@ spring:
       max-request-size: 50MB
 
   datasource:
-    url: jdbc:mysql://localhost:3306/trendfit?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    # 배포 환경(Railway 등)에서는 DB_URL을 해당 플랫폼이 제공하는 MySQL 접속 정보로 덮어쓴다.
+    # 예: jdbc:mysql://<host>:<port>/<database>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: ${DB_URL:jdbc:mysql://localhost:3306/trendfit?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DB_USERNAME:trendfit}
     password: ${DB_PASSWORD:trendfit}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,8 +28,23 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
 
-# 외부 연동 설정 (실제 키는 application-local.yml 또는 환경변수로 분리하고 커밋하지 않습니다)
+# 외부 연동 설정. 실제 키는 backend/.env 파일(gitignore 처리됨, spring-dotenv가 부팅 시
+# 자동으로 읽어 환경변수로 주입)에 넣어 관리한다. backend/.env.example 참고.
 trendfit:
+  security:
+    jwt:
+      # JWT 서명 비밀키. 로컬 개발 기본값이 있지만, 배포 환경에서는 반드시 TRENDFIT_PASSWORD
+      # 환경변수(.env)로 32바이트 이상의 값을 주입한다 (conventions.md §4 — Google OAuth2
+      # 로그인 + JWT 세션 결정). 참고: 구글 로그인 자체(액세스 토큰 검증)에는 별도 시크릿이
+      # 필요 없다 — 이 값은 우리 서버가 발급하는 JWT 서명 전용이다.
+      secret: ${TRENDFIT_PASSWORD:trendfit-local-dev-only-jwt-secret-please-override-in-production}
+      access-token-validity-ms: 1800000    # 30분
+      refresh-token-validity-ms: 1209600000 # 14일
+    google:
+      # Google Cloud Console에서 발급받은 OAuth 2.0 "웹 애플리케이션" 클라이언트 ID(비밀값 아님).
+      # 프론트(app/lib/config/app_config.dart의 googleWebClientId, app/web/index.html의
+      # google-signin-client_id meta 태그)와 동일한 클라이언트 ID를 가리킨다.
+      client-id: ${TRENDFIT_ID:406450564519-1bpdop9rh4s3dfiud5fst2fqs39o4d9p.apps.googleusercontent.com}
   ai:
     claude:
       api-key: ${CLAUDE_API_KEY:}
@@ -43,6 +61,19 @@ trendfit:
       - https://www.wkorea.com/feed/
       - https://hypebeast.kr/feed
   storage:
+    # local(기본값, 로컬 파일시스템) 또는 r2(Cloudflare R2). 배포 환경(Railway)은 재배포마다
+    # 파일시스템이 초기화되므로 r2로 설정해야 한다 (A4, 2026-07-27 결정).
+    provider: ${STORAGE_PROVIDER:local}
     local:
-      # 로컬 개발 전용. 배포 전 클라우드 구현체(Cloudflare R2 등)로 교체한다 (A4, 2026-07-27 결정)
       base-dir: ./storage/images
+    r2:
+      # Cloudflare 대시보드 R2 > Manage API Tokens에서 발급. provider=r2일 때만 쓰인다.
+      account-id: ${R2_ACCOUNT_ID:}
+      access-key-id: ${R2_ACCESS_KEY_ID:}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+      bucket: ${R2_BUCKET:}
+  cors:
+    # Flutter Web(별도 오리진, architecture.md §4 — 프론트 Vercel/백엔드 Render·Railway)이
+    # 브라우저에서 REST 호출을 하려면 CORS 허용이 필요하다. 로컬 개발 기본값 + 배포 도메인은
+    # 환경변수로 주입한다(콤마 구분).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8765,http://localhost:3000,http://localhost:5000}

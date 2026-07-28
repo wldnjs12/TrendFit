@@ -48,6 +48,25 @@ public class UserService implements UserPreferencePort {
                 .orElseThrow(() -> new IllegalArgumentException("온보딩이 완료되지 않은 사용자: " + userId));
     }
 
+    @Transactional(readOnly = true)
+    public User getMe(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    }
+
+    /**
+     * 회원 탈퇴. User 컨텍스트 소유 데이터(User, UserPreference)만 정리한다 — 옷장/추천 이력은
+     * 다른 컨텍스트 소유 데이터라 ID 참조만 남기고 직접 삭제하지 않는다(conventions.md §3,
+     * 컨텍스트 간 직접 의존 금지).
+     */
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        userPreferenceRepository.findByUserId(userId).ifPresent(userPreferenceRepository::delete);
+        userRepository.delete(user);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Optional<UserPreferenceView> findPreference(Long userId) {

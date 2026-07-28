@@ -26,6 +26,18 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
+	// 인증: Google OAuth2 로그인 + JWT 세션 (conventions.md §4 결정)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+	// backend/.env 파일을 부팅 시 자동으로 읽어 환경변수로 주입 (커밋 금지 — .gitignore 처리됨)
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+	// 이미지 스토리지: Cloudflare R2(S3 호환 API) — global.storage.R2ImageStorage (A4 결정)
+	implementation 'software.amazon.awssdk:s3:2.46.7'
+
 	// 트렌드 수집: RSS/Atom 파싱 (PRD 4.2 F1)
 	implementation 'com.rometools:rome:2.1.0'
 
@@ -43,6 +55,7 @@ dependencies {
 
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.named('test') {

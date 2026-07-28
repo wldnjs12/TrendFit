@@ -1,10 +1,17 @@
 package com.trendfit.domain.recommendation.controller;
 
+import com.trendfit.domain.recommendation.dto.RecommendationHistoryItemResponse;
 import com.trendfit.domain.recommendation.dto.RecommendationRequest;
 import com.trendfit.domain.recommendation.dto.RecommendationResponse;
 import com.trendfit.domain.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.List;
 
 /**
  * 트렌드 번역 추천 엔진 API. (PRD 4.2 F3 — 핵심 기능)
@@ -28,6 +35,18 @@ public class RecommendationController {
                                                           @RequestBody RecommendationRequest request) {
         return recommendationService.requestRecommendation(
                 userId, request.requestText(), request.lat(), request.lon());
+    }
+
+    /** 캘린더(위클리 아카이브). weekStart를 안 주면 이번 주 월요일부터 조회한다. */
+    @GetMapping("/history")
+    public List<RecommendationHistoryItemResponse> getWeeklyHistory(
+            @RequestParam("userId") Long userId,
+            @RequestParam(value = "weekStart", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+        LocalDate resolvedWeekStart = weekStart != null
+                ? weekStart
+                : LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        return recommendationService.getWeeklyHistory(userId, resolvedWeekStart);
     }
 
     @PostMapping("/{id}/purchase-callback")

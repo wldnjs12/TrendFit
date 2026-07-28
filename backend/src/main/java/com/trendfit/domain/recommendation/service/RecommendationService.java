@@ -1,10 +1,12 @@
 package com.trendfit.domain.recommendation.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trendfit.domain.closet.port.ClosetItemView;
 import com.trendfit.domain.closet.port.ClosetQueryPort;
 import com.trendfit.domain.recommendation.dto.PlusOneResponse;
+import com.trendfit.domain.recommendation.dto.RecommendationHistoryItemResponse;
 import com.trendfit.domain.recommendation.dto.RecommendationResponse;
 import com.trendfit.domain.recommendation.dto.RecommendedItemResponse;
 import com.trendfit.domain.recommendation.entity.RecommendationLog;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -61,9 +64,9 @@ public class RecommendationService {
         List<ClosetItemView> closetItems = closetQueryPort.findAllByUserId(userId);
         enforceClosetActivation(closetItems);
 
-        List<String> styleTags = userPreferencePort.findPreference(userId)
-                .map(UserPreferenceView::styleTags)
-                .orElse(List.of());
+        Optional<UserPreferenceView> preference = userPreferencePort.findPreference(userId);
+        List<String> styleTags = preference.map(UserPreferenceView::styleTags).orElse(List.of());
+        String bodyInfo = preference.map(UserPreferenceView::bodyInfo).orElse(null);
         String weather = weatherClient.fetchTodayWeather(
                         lat != null ? lat : DEFAULT_LAT,
                         lon != null ? lon : DEFAULT_LON)
@@ -71,7 +74,7 @@ public class RecommendationService {
                 .orElse(null);
 
         RecommendationContext context = new RecommendationContext(
-                requestText, weather, trendQueryPort.findLatestKeywords(), styleTags, closetItems);
+                requestText, weather, trendQueryPort.findLatestKeywords(), styleTags, bodyInfo, closetItems);
 
         RecommendationResult result = recommendationEngine.recommend(context)
                 .orElseThrow(() -> new IllegalStateException("추천을 생성하지 못했습니다. 잠시 후 다시 시도해주세요."));
@@ -98,6 +101,46 @@ public class RecommendationService {
                 result.stylingNote(),
                 result.plusOne() == null ? null : new PlusOneResponse(
                         result.plusOne().itemName(), result.plusOne().reason(), result.plusOne().category()));
+    }
+
+    /** 캘린더(위클리 아카이브) — weekStart(월요일)부터 7일치 추천 이력을 날짜순으로 반환한다. */
+    @Transactional(readOnly = true)
+    public List<RecommendationHistoryItemResponse> getWeeklyHistory(Long userId, LocalDate weekStart) {
+        LocalDateTime start = weekStart.atStartOfDay();
+        LocalDateTime end = weekStart.plusDays(7).atStartOfDay();
+
+        List<RecommendationLog> logs = recommendationLogRepository
+                .findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(userId, start, end);
+        if (logs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, ClosetItemView> closetById = closetQueryPort.findAllByUserId(userId).stream()
+                .collect(Collectors.toMap(ClosetItemView::id, Function.identity()));
+
+        return logs.stream()
+                .map(log -> new RecommendationHistoryItemResponse(
+                        log.getId(),
+                        log.getCreatedAt().toLocalDate(),
+                        readItemIds(log.getResultItemIdsJson()).stream()
+                                .map(closetById::get)
+                                .filter(Objects::nonNull)
+                                .map(item -> new RecommendedItemResponse(
+                                        item.id(), item.category(), ImageUrls.toUrl(item.croppedImagePath())))
+                                .toList(),
+                        log.getRequestText()))
+                .toList();
+    }
+
+    private List<Long> readItemIds(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<Long>>() {});
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void enforceRateLimit(Long userId) {

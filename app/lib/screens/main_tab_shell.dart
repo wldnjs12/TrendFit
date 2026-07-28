@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'calendar_screen.dart';
 import 'closet_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/trendfit_bottom_nav.dart';
 
-/// 온보딩 이후 진입하는 메인 화면. 하단 네비게이션 3탭: 홈 · 옷장 · 프로필
-/// (CLAUDE.md §4 UI 구조 — 탭이 적을수록 고민 없이 눌린다).
+/// 온보딩 이후 진입하는 메인 화면. 하단 네비게이션 4탭: 홈 · 옷장 · 캘린더 · 프로필
+/// (CLAUDE.md §4 — Figma 디자인 확정으로 3탭 원칙에서 캘린더 탭이 승격됨, 2026-07-28).
 class MainTabShell extends StatefulWidget {
   const MainTabShell({super.key});
 
@@ -18,6 +20,7 @@ class _MainTabShellState extends State<MainTabShell> {
   static const _screens = [
     HomeScreen(),
     ClosetScreen(),
+    CalendarScreen(),
     ProfileScreen(),
   ];
 
@@ -25,26 +28,9 @@ class _MainTabShellState extends State<MainTabShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: '홈',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.checkroom_outlined),
-            selectedIcon: Icon(Icons.checkroom),
-            label: '옷장',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: '프로필',
-          ),
-        ],
+      bottomNavigationBar: TrendFitBottomNav(
+        currentIndex: _index,
+        onTap: (value) => setState(() => _index = value),
       ),
     );
   }

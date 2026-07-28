@@ -11,4 +11,8 @@ public interface RecommendationLogRepository extends JpaRepository<Recommendatio
 
     /** 하루 요청 빈도 제한(A5, 2026-07-27 결정) 확인용. */
     long countByUserIdAndCreatedAtAfter(Long userId, LocalDateTime since);
+
+    /** 캘린더(위클리 아카이브) 조회용 — 주 단위 구간 이력. */
+    List<RecommendationLog> findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(
+            Long userId, LocalDateTime start, LocalDateTime end);
 }

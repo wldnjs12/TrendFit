@@ -79,6 +79,10 @@ public class ClaudeRecommendationEngine {
                 .append(context.styleTags().isEmpty() ? "없음" : String.join(", ", context.styleTags()))
                 .append("\n\n");
 
+        sb.append("[체형 정보]\n")
+                .append(context.bodyInfo() != null && !context.bodyInfo().isBlank() ? context.bodyInfo() : "없음")
+                .append(" — 체형 정보가 있다면 실루엣/핏이 체형에 어울리는 조합을 우선한다.\n\n");
+
         sb.append("[보유 옷장]\n");
         for (ClosetItemView item : context.closetItems()) {
             sb.append(item.toPromptTag()).append("\n");
