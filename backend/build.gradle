@@ -37,6 +37,12 @@ dependencies {
 
 	// 이미지 스토리지: Cloudflare R2(S3 호환 API) — global.storage.R2ImageStorage (A4 결정)
 	implementation 'software.amazon.awssdk:s3:2.46.7'
+	// awssdk apache5-client가 요구하는 버전(httpclient5 5.6.1, TlsSocketStrategy 포함;
+	// httpcore5 5.4, DefaultHttpRequestWriterFactory(Http1Config) 포함)이 Spring Boot의
+	// 의존성 관리(각각 5.3.1 / 5.2.4)에 의해 강제 다운그레이드되어 런타임 에러가 나던 문제 수정.
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.6.1'
+	implementation 'org.apache.httpcomponents.core5:httpcore5:5.4'
+	implementation 'org.apache.httpcomponents.core5:httpcore5-h2:5.4'
 
 	// 트렌드 수집: RSS/Atom 파싱 (PRD 4.2 F1)
 	implementation 'com.rometools:rome:2.1.0'

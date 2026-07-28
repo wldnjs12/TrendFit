@@ -21,7 +21,6 @@ app/.pub/
 app/build/
 app/ios/
 app/android/
-app/web/
 app/macos/
 app/windows/
 app/linux/
