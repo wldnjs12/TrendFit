@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../config/style_tags.dart';
 import '../services/api_service.dart';
+import '../widgets/step_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'main_tab_shell.dart';
 
@@ -87,9 +89,15 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('STEP 02', style: AppTextStyles.trackedLabelBig),
+              if (widget._isReconfigure)
+                Text('취향 재설정', style: AppTextStyles.trackedLabelBig.copyWith(color: AppColors.textPrimary))
+              else
+                const StepIndicator(step: 2, total: 2, label: '스타일 취향'),
               const SizedBox(height: 8),
-              Text('당신의 스타일 취향을\n선택해주세요', style: AppTextStyles.displayHeavy.copyWith(fontSize: 26)),
+              Text('당신의 스타일 취향을\n선택해주세요', style: AppTextStyles.displayHeavy.copyWith(fontSize: 26))
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger)
+                  .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 12),
               Text(
                 '선택하신 스타일을 바탕으로 오늘 날씨와 트렌드에 맞는 최적의 코디를 제안해드립니다 (최소 1개 선택)',
@@ -109,7 +117,10 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
                 itemBuilder: (context, index) {
                   final tag = kStyleTags[index];
                   final selected = _selectedTags.contains(tag);
-                  return _tagCard(tag, _cardTones[index % _cardTones.length], selected);
+                  return _tagCard(tag, _cardTones[index % _cardTones.length], selected)
+                      .animate()
+                      .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * index)
+                      .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1), duration: AppMotion.base, curve: AppMotion.enter);
                 },
               ),
               const SizedBox(height: 4),
@@ -162,7 +173,9 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
               loadingBuilder: (context, child, progress) => progress == null ? child : const SizedBox.shrink(),
               errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
-          DecoratedBox(
+          AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.enter,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -180,12 +193,16 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
               style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 15),
             ),
           ),
-          if (selected)
-            const Positioned(
-              top: 8,
-              right: 8,
-              child: Icon(Icons.check_circle, color: AppColors.white, size: 20),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: AnimatedScale(
+              scale: selected ? 1 : 0,
+              duration: AppMotion.fast,
+              curve: AppMotion.spring,
+              child: const Icon(Icons.check_circle, color: AppColors.white, size: 20),
             ),
+          ),
         ],
       ),
     );

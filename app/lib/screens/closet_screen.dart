@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
@@ -69,7 +70,12 @@ class _ClosetScreenState extends State<ClosetScreen> {
         backgroundColor: AppColors.black,
         shape: const RoundedRectangleBorder(),
         child: const Icon(Icons.add, color: AppColors.white),
-      ),
+      ).animate().scale(
+            begin: const Offset(0, 0),
+            end: const Offset(1, 1),
+            duration: AppMotion.slow,
+            curve: AppMotion.spring,
+          ),
       body: SafeArea(
         top: false,
         child: FutureBuilder<List<ClothingItem>>(
@@ -116,8 +122,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        if (index == items.length) return _addItemCard();
-                        return _itemCard(items[index]);
+                        final card = index == items.length ? _addItemCard() : _itemCard(items[index]);
+                        return card
+                            .animate()
+                            .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * (index % 6))
+                            .scale(begin: const Offset(0.94, 0.94), end: const Offset(1, 1), duration: AppMotion.base, curve: AppMotion.enter);
                       },
                       childCount: items.length + 1,
                     ),

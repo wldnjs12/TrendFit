@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
@@ -96,8 +97,19 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
       appBar: TrendFitTopBar(
         onBack: () => Navigator.of(context).pop(),
         actions: [
-          Text('${_itemIndex + 1} / ${widget.items.length}',
-              style: AppTextStyles.trackedLabel.copyWith(color: AppColors.textPrimary)),
+          DecoratedBox(
+            decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(999)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Text('${_itemIndex + 1} / ${widget.items.length}',
+                  style: AppTextStyles.trackedLabel.copyWith(color: AppColors.white)),
+            ),
+          ).animate(key: ValueKey(_itemIndex)).fadeIn(duration: AppMotion.fast).scale(
+                begin: const Offset(0.85, 0.85),
+                end: const Offset(1, 1),
+                duration: AppMotion.fast,
+                curve: AppMotion.spring,
+              ),
         ],
       ),
       body: SafeArea(
@@ -105,20 +117,32 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Center(
-            child: _phase == _Phase.fitQuestion
-                ? SwipeConfirmCard(
-                    imageUrl: _apiService.imageUrl(imagePath),
-                    question: _fitQuestions[_fitStep].$1,
-                    onConfirm: () {
-                      _fitConfirmed = true;
-                      _onFitDecision(true);
-                    },
-                    onReject: () {
-                      _fitConfirmed = false;
-                      _onFitDecision(false);
-                    },
-                  )
-                : _buildMaterialPicker(),
+            child: AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.enter,
+              switchOutCurve: AppMotion.exit,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(animation), child: child),
+              ),
+              child: KeyedSubtree(
+                key: ValueKey('$_itemIndex-$_phase-$_fitStep'),
+                child: _phase == _Phase.fitQuestion
+                    ? SwipeConfirmCard(
+                        imageUrl: _apiService.imageUrl(imagePath),
+                        question: _fitQuestions[_fitStep].$1,
+                        onConfirm: () {
+                          _fitConfirmed = true;
+                          _onFitDecision(true);
+                        },
+                        onReject: () {
+                          _fitConfirmed = false;
+                          _onFitDecision(false);
+                        },
+                      )
+                    : _buildMaterialPicker(),
+              ),
+            ),
           ),
         ),
       ),
@@ -138,16 +162,21 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
             spacing: 8,
             runSpacing: 8,
             alignment: WrapAlignment.center,
-            children: _materials.map((material) {
+            children: _materials.asMap().entries.map((entry) {
               return ChoiceChip(
-                label: Text(material),
+                label: Text(entry.value),
                 selected: false,
-                onSelected: (_) => _onMaterialPicked(material),
+                onSelected: (_) => _onMaterialPicked(entry.value),
                 shape: const RoundedRectangleBorder(),
                 side: const BorderSide(color: AppColors.borderLight),
                 backgroundColor: AppColors.white,
                 labelStyle: const TextStyle(color: AppColors.textPrimary),
-              );
+              ).animate().fadeIn(duration: AppMotion.fast, delay: AppMotion.stagger * entry.key).scale(
+                    begin: const Offset(0.9, 0.9),
+                    end: const Offset(1, 1),
+                    duration: AppMotion.fast,
+                    curve: AppMotion.enter,
+                  );
             }).toList(),
           ),
       ],

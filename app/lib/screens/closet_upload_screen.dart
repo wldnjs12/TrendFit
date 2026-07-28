@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/step_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 
 /// 옷장 사진 등록. (Figma "옷장 사진 등록")
@@ -67,10 +69,35 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(child: Text('UPLOAD PROGRESS', style: AppTextStyles.trackedLabel)),
-              Text('${(progress * 100).round()}%', style: AppTextStyles.trackedLabel.copyWith(color: AppColors.textPrimary)),
+              Row(
+                children: [
+                  Expanded(child: Text('UPLOAD PROGRESS', style: AppTextStyles.trackedLabel)),
+                  Text('${(progress * 100).round()}%', style: AppTextStyles.trackedLabel.copyWith(color: AppColors.textPrimary)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: SizedBox(
+                  height: 4,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Stack(
+                      children: [
+                        Container(color: AppColors.chipBackground),
+                        AnimatedContainer(
+                          duration: AppMotion.base,
+                          curve: AppMotion.enter,
+                          width: constraints.maxWidth * progress,
+                          color: AppColors.black,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -83,9 +110,12 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('STEP 01', style: AppTextStyles.trackedLabelBig),
+              const StepIndicator(step: 1, total: 2, label: '옷장 등록'),
               const SizedBox(height: 8),
-              Text('나의 클로젯 사진 등록', style: AppTextStyles.displayHeavy.copyWith(fontSize: 24)),
+              Text('나의 클로젯 사진 등록', style: AppTextStyles.displayHeavy.copyWith(fontSize: 24))
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger)
+                  .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 8),
               Text(
                 '정확한 스타일 분석을 위해 최소 $_recommendedMinimum장의 옷 사진을 등록해주세요.',
@@ -157,7 +187,7 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
                           ),
                         ],
                       ),
-                    );
+                    ).animate().fadeIn(duration: AppMotion.fast).scale(begin: const Offset(0.85, 0.85), end: const Offset(1, 1), duration: AppMotion.base, curve: AppMotion.spring);
                   },
                 ),
               ],

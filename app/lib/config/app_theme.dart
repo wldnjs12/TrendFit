@@ -99,6 +99,20 @@ class AppTextStyles {
       ).copyWith(fontFamilyFallback: _koreanFallback);
 }
 
+/// 앱 전역 애니메이션 지속시간/커브 토큰. 화면마다 제각각 값을 쓰지 않도록 여기서 통일한다.
+class AppMotion {
+  const AppMotion._();
+
+  static const fast = Duration(milliseconds: 160);
+  static const base = Duration(milliseconds: 280);
+  static const slow = Duration(milliseconds: 420);
+  static const stagger = Duration(milliseconds: 60);
+
+  static const enter = Curves.easeOutCubic;
+  static const exit = Curves.easeInCubic;
+  static const spring = Curves.easeOutBack;
+}
+
 class AppTheme {
   const AppTheme._();
 

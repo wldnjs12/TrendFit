@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
@@ -8,6 +9,8 @@ import '../services/api_service.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'calendar_screen.dart';
 import 'recommendation_result_screen.dart';
+
+enum _LocationStatus { loading, available, denied, unavailable }
 
 /// 홈 = 오늘의 코디. (CLAUDE.md §4, Figma "홈 (오늘의 추천) v2")
 /// 켜자마자 날씨+트렌드 기반 추천을 받을 수 있는 입력창을 보여준다.
@@ -27,10 +30,31 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _errorMessage;
   RecommendationResult? _result;
 
+  Position? _position;
+  _LocationStatus _locationStatus = _LocationStatus.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    // 검색을 눌러야만 위치를 요청하던 걸 화면 진입 시 바로 시도하도록 변경 —
+    // 사용자가 "위치 자동설정이 안 된다"고 느끼는 원인이었다.
+    _initLocation();
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _initLocation() async {
+    setState(() => _locationStatus = _LocationStatus.loading);
+    final position = await _resolvePosition();
+    if (!mounted) return;
+    setState(() {
+      _position = position;
+      _locationStatus = position != null ? _LocationStatus.available : _locationStatus;
+    });
   }
 
   Future<void> _requestRecommendation() async {
@@ -47,7 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
     try {
-      final position = await _resolvePosition();
+      // 이미 위치를 확보했으면 재요청하지 않고 그대로 쓴다.
+      final position = _position ?? await _resolvePosition();
       final result = await _apiService.requestRecommendation(
         AppSession.userId!,
         requestText,
@@ -64,37 +89,83 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 정확한 날씨 조회를 위한 위치 자동 감지. 권한이 없거나 실패하면 null을 반환해
   /// 서버가 기본 좌표(서울시청)로 폴백하도록 둔다 — 위치 접근이 추천 기능을 막아서는 안 된다.
+  /// 실패 사유는 [_locationStatus]에 반영해 화면에 조용히 묻히지 않게 한다.
   Future<Position?> _resolvePosition() async {
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        if (mounted) setState(() => _locationStatus = _LocationStatus.unavailable);
+        return null;
+      }
 
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationStatus = _LocationStatus.denied);
         return null;
       }
 
-      return await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
       );
+      if (mounted) setState(() => _locationStatus = _LocationStatus.available);
+      return position;
     } catch (_) {
+      if (mounted) setState(() => _locationStatus = _LocationStatus.unavailable);
       return null;
     }
+  }
+
+  Widget _buildLocationChip() {
+    late final IconData icon;
+    late final String label;
+    switch (_locationStatus) {
+      case _LocationStatus.loading:
+        icon = Icons.location_searching;
+        label = '위치 확인 중';
+        break;
+      case _LocationStatus.available:
+        icon = Icons.location_on;
+        label = '내 위치 기반';
+        break;
+      case _LocationStatus.denied:
+        icon = Icons.location_off;
+        label = '위치 권한 필요';
+        break;
+      case _LocationStatus.unavailable:
+        icon = Icons.location_disabled;
+        label = '위치 미사용';
+        break;
+    }
+    final interactive = _locationStatus == _LocationStatus.denied || _locationStatus == _LocationStatus.unavailable;
+    return InkWell(
+      onTap: interactive ? _initLocation : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_locationStatus == _LocationStatus.loading)
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary),
+              )
+            else
+              Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(label, style: AppTextStyles.trackedLabel),
+          ],
+        ),
+      ),
+    ).animate(target: _locationStatus == _LocationStatus.loading ? 0 : 1).fadeIn(duration: AppMotion.fast);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TrendFitTopBar(
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.shopping_bag_outlined, size: 18, color: AppColors.textPrimary),
-          ),
-        ],
-      ),
+      appBar: TrendFitTopBar(actions: [_buildLocationChip()]),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -102,11 +173,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSearchBar(),
+              _buildSearchBar()
+                  .animate()
+                  .fadeIn(duration: AppMotion.base)
+                  .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 32),
-              _buildSectionHeader(),
+              _buildSectionHeader()
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger)
+                  .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 24),
-              _buildBody(),
+              _buildBody()
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 2)
+                  .slideY(begin: 0.05, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
             ],
           ),
         ),

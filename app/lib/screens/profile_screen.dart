@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geolocator/geolocator.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
@@ -24,15 +26,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
   late Future<UserPreference> _preferenceFuture;
   bool _processingAccountAction = false;
+  String _locationSubtitle = '위치 확인 중...';
+  bool _locationTappable = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadLocation();
   }
 
   void _load() {
     _preferenceFuture = _apiService.fetchOnboarding(AppSession.userId!);
+  }
+
+  /// 실제 기기 위치 권한 상태를 그대로 보여준다 — 예전엔 "서울시 강남구"가 항상
+  /// 하드코딩되어 있고 탭해도 반응이 없는 가짜 UI였다.
+  Future<void> _loadLocation() async {
+    setState(() {
+      _locationSubtitle = '위치 확인 중...';
+      _locationTappable = false;
+    });
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        if (!mounted) return;
+        setState(() {
+          _locationSubtitle = '기기 위치 서비스가 꺼져 있어요';
+          _locationTappable = true;
+        });
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        setState(() {
+          _locationSubtitle = '위치 접근이 거부되어 있어요 (탭하여 다시 시도)';
+          _locationTappable = true;
+        });
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+      );
+      if (!mounted) return;
+      setState(() {
+        _locationSubtitle = '위도 ${position.latitude.toStringAsFixed(2)}, 경도 ${position.longitude.toStringAsFixed(2)} 기반';
+        _locationTappable = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _locationSubtitle = '위치를 가져오지 못했어요 (탭하여 다시 시도)';
+        _locationTappable = true;
+      });
+    }
   }
 
   Future<void> _reconfigure() async {
@@ -99,14 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TrendFitTopBar(
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.ios_share, size: 18, color: AppColors.textPrimary),
-          ),
-        ],
-      ),
+      appBar: const TrendFitTopBar(),
       body: SafeArea(
         top: false,
         child: FutureBuilder<UserPreference>(
@@ -127,7 +170,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildIdentity(),
+                  _buildIdentity()
+                      .animate()
+                      .fadeIn(duration: AppMotion.base)
+                      .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
                   const SizedBox(height: 32),
                   _sectionLabel('PREFERENCE'),
                   const SizedBox(height: 12),
@@ -154,9 +200,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   _actionRow(
                     icon: Icons.location_on_outlined,
-                    label: '지역 및 날씨 수동 설정',
-                    subtitle: '서울시 강남구',
-                    onTap: null,
+                    label: '지역 및 날씨',
+                    subtitle: _locationSubtitle,
+                    onTap: _locationTappable ? _loadLocation : null,
                   ),
                   const SizedBox(height: 40),
                   Row(

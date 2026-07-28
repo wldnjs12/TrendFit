@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../models/recommendation_history.dart';
 import '../services/api_service.dart';
+import '../widgets/trendfit_mark.dart';
 
 /// 캘린더(위클리 아카이브) — 4번째 탭. (Figma "위클리 아카이브" 프레임, 2026-07-28 결정으로 MVP 승격)
 /// `RecommendationLog` 이력을 주 단위(월~일)로 묶어 그날 추천받은 코디를 돌아본다.
@@ -19,6 +21,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
   late DateTime _weekStart;
   late Future<List<RecommendationHistoryItem>> _historyFuture;
+  int _shiftDirection = 0;
 
   static const _dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -36,6 +39,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _shiftWeek(int deltaWeeks) {
     setState(() {
+      _shiftDirection = deltaWeeks.sign;
       _weekStart = _weekStart.add(Duration(days: 7 * deltaWeeks));
       _load();
     });
@@ -64,7 +68,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   for (final entry in snapshot.data ?? []) {
                     byDay[entry.date.weekday] = entry;
                   }
-                  return _buildWeekGrid(byDay);
+                  return _buildWeekGrid(byDay)
+                      .animate(key: ValueKey(_weekStart))
+                      .fadeIn(duration: AppMotion.base)
+                      .slideX(begin: 0.06 * (_shiftDirection == 0 ? 1 : _shiftDirection), end: 0, duration: AppMotion.base, curve: AppMotion.enter);
                 },
               ),
             ),
@@ -84,8 +91,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.menu, size: 18, color: AppColors.textPrimary),
-              const SizedBox(width: 16),
+              const TrendFitMark(size: 26, radius: 6),
+              const SizedBox(width: 12),
               Text('WEEKLY ARCHIVE', style: AppTextStyles.wordmark.copyWith(fontSize: 18)),
             ],
           ),
@@ -132,17 +139,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _dayCard(row * 2 + 1, byDay[row * 2 + 1])),
+                Expanded(child: _staggered(_dayCard(row * 2 + 1, byDay[row * 2 + 1]), row * 2)),
                 const SizedBox(width: 12),
-                Expanded(child: _dayCard(row * 2 + 2, byDay[row * 2 + 2])),
+                Expanded(child: _staggered(_dayCard(row * 2 + 2, byDay[row * 2 + 2]), row * 2 + 1)),
               ],
             ),
             const SizedBox(height: 12),
           ],
-          _dayCard(7, byDay[7], fullWidth: true, height: 260),
+          _staggered(_dayCard(7, byDay[7], fullWidth: true, height: 260), 6),
         ],
       ),
     );
+  }
+
+  Widget _staggered(Widget child, int index) {
+    return child
+        .animate()
+        .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * index)
+        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: AppMotion.base, curve: AppMotion.enter);
   }
 
   Widget _dayCard(int weekday, RecommendationHistoryItem? entry, {bool fullWidth = false, double height = 160}) {

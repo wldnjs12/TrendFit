@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 import 'calendar_screen.dart';
 import 'closet_screen.dart';
 import 'home_screen.dart';
@@ -27,7 +28,23 @@ class _MainTabShellState extends State<MainTabShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      // IndexedStack 대신 전 탭을 계속 마운트해둔 채 opacity만 애니메이션한다 —
+      // 탭을 넘나들 때 각 화면(검색 결과, 스크롤 위치 등)의 상태는 그대로 유지하면서
+      // 전환에는 자연스러운 크로스페이드를 준다.
+      body: Stack(
+        children: List.generate(_screens.length, (i) {
+          final active = i == _index;
+          return IgnorePointer(
+            ignoring: !active,
+            child: AnimatedOpacity(
+              opacity: active ? 1 : 0,
+              duration: AppMotion.base,
+              curve: AppMotion.enter,
+              child: _screens[i],
+            ),
+          );
+        }),
+      ),
       bottomNavigationBar: TrendFitBottomNav(
         currentIndex: _index,
         onTap: (value) => setState(() => _index = value),

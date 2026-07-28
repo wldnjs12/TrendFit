@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_theme.dart';
 import '../config/style_tags.dart';
+import '../widgets/step_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'style_preference_screen.dart';
 
@@ -57,9 +59,12 @@ class _SignupInfoScreenState extends State<SignupInfoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('STEP 01', style: AppTextStyles.trackedLabelBig),
+              const StepIndicator(step: 1, total: 2, label: '회원정보'),
               const SizedBox(height: 8),
-              Text('당신을 위한 맞춤 핏을 위해\n정보를 입력해주세요', style: AppTextStyles.displayHeavy.copyWith(fontSize: 26)),
+              Text('당신을 위한 맞춤 핏을 위해\n정보를 입력해주세요', style: AppTextStyles.displayHeavy.copyWith(fontSize: 26))
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger)
+                  .slideY(begin: 0.08, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 40),
               _fieldLabel('이름'),
               TextField(controller: _nameController, decoration: const InputDecoration(hintText: '홍길동')),

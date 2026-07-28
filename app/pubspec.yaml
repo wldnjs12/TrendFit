@@ -17,6 +17,7 @@ dependencies:
   google_sign_in: ^6.2.1 # Google OAuth2 로그인 (conventions.md §4)
   shared_preferences: ^2.3.2 # 로그인 세션(JWT) 로컬 영속화
   geolocator: ^13.0.2 # 추천 요청 시 날씨 조회용 위치(위경도) 자동 감지
+  flutter_animate: ^4.5.0 # 화면 전환/진입/탭 피드백 애니메이션
 
 dev_dependencies:
   flutter_test:

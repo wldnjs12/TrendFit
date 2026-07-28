@@ -35,16 +35,31 @@ class TrendFitBottomNav extends StatelessWidget {
               final color = active ? AppColors.black : AppColors.textTertiary;
               return InkWell(
                 onTap: () => onTap(index),
+                borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(active ? item.activeIcon : item.icon, size: 20, color: color),
+                      AnimatedScale(
+                        scale: active ? 1.12 : 1.0,
+                        duration: AppMotion.fast,
+                        curve: AppMotion.spring,
+                        child: Icon(active ? item.activeIcon : item.icon, size: 20, color: color),
+                      ),
                       const SizedBox(height: 4),
-                      Text(
-                        item.label,
+                      AnimatedDefaultTextStyle(
+                        duration: AppMotion.fast,
                         style: AppTextStyles.trackedLabel.copyWith(color: color),
+                        child: Text(item.label),
+                      ),
+                      const SizedBox(height: 3),
+                      AnimatedContainer(
+                        duration: AppMotion.fast,
+                        curve: AppMotion.enter,
+                        height: 2,
+                        width: active ? 14 : 0,
+                        color: AppColors.black,
                       ),
                     ],
                   ),

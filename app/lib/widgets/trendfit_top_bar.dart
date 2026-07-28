@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_theme.dart';
+import 'trendfit_mark.dart';
 
-/// Figma "Header - Top AppBar" 공통 컴포넌트. 반투명 배경 + TRENDFIT 워드마크.
+/// Figma "Header - Top AppBar" 공통 컴포넌트. 반투명 배경 + T 마크 + TRENDFIT 워드마크.
 class TrendFitTopBar extends StatelessWidget implements PreferredSizeWidget {
   const TrendFitTopBar({super.key, this.leading, this.actions, this.onBack});
 
@@ -35,8 +37,8 @@ class TrendFitTopBar extends StatelessWidget implements PreferredSizeWidget {
               else if (leading != null)
                 leading!
               else
-                const Icon(Icons.menu, size: 18, color: AppColors.textPrimary),
-              const SizedBox(width: 16),
+                const TrendFitMark(size: 28, radius: 6),
+              const SizedBox(width: 12),
               Text('TRENDFIT', style: AppTextStyles.wordmark),
               const Spacer(),
               if (actions != null) ...actions!,
@@ -45,6 +47,6 @@ class TrendFitTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(duration: AppMotion.fast).slideY(begin: -0.3, end: 0, duration: AppMotion.fast, curve: AppMotion.enter);
   }
 }

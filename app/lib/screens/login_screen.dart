@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/trendfit_mark.dart';
 import 'main_tab_shell.dart';
 import 'signup_info_screen.dart';
 
@@ -50,17 +52,29 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
           child: Column(
             children: [
-              Text('TRENDFIT', style: AppTextStyles.wordmark),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const TrendFitMark(size: 32, radius: 8),
+                  const SizedBox(width: 10),
+                  Text('TRENDFIT', style: AppTextStyles.wordmark),
+                ],
+              ).animate().fadeIn(duration: AppMotion.base).slideY(begin: -0.2, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const Spacer(),
-              Text('WELCOME TO THE CURATED SPACE', style: AppTextStyles.trackedLabel),
+              Text('WELCOME TO THE CURATED SPACE', style: AppTextStyles.trackedLabel)
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger),
               const SizedBox(height: 12),
-              Text('나만의 스타일을 완성하세요', style: AppTextStyles.koreanHeadline, textAlign: TextAlign.center),
+              Text('나만의 스타일을 완성하세요', style: AppTextStyles.koreanHeadline, textAlign: TextAlign.center)
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 2)
+                  .slideY(begin: 0.1, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
               const SizedBox(height: 8),
               Text(
                 '로그인하여 트렌드핏의 단독 컬렉션을 만나보세요.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body,
-              ),
+              ).animate().fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 3),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -71,7 +85,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Icon(Icons.g_mobiledata, size: 24),
                   label: const Text('GOOGLE로 계속하기'),
                 ),
-              ),
+              ).animate().fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 4).scale(
+                    begin: const Offset(0.96, 0.96),
+                    end: const Offset(1, 1),
+                    duration: AppMotion.base,
+                    curve: AppMotion.enter,
+                  ),
               const Spacer(),
               const Text(
                 '© 2026 TRENDFIT ARCHIVE. ALL RIGHTS RESERVED.',

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
+import '../widgets/trendfit_mark.dart';
 import 'login_screen.dart';
 import 'main_tab_shell.dart';
 
@@ -21,7 +23,12 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
       final next = AppSession.isLoggedIn ? const MainTabShell() : const LoginScreen();
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => next));
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: AppMotion.slow,
+          pageBuilder: (_, animation, __) => FadeTransition(opacity: animation, child: next),
+        ),
+      );
     });
   }
 
@@ -33,19 +40,20 @@ class _SplashScreenState extends State<SplashScreen> {
         children: [
           const Positioned(top: 0, left: 0, right: 0, child: Divider(color: AppColors.black, height: 1, thickness: 1)),
           const Positioned(bottom: 0, left: 0, right: 0, child: Divider(color: AppColors.black, height: 1, thickness: 1)),
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-              child: FittedBox(
-                fit: BoxFit.fill,
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Text(
-                    'TRENDFIT',
-                    style: AppTextStyles.wordmark.copyWith(fontWeight: FontWeight.w700, letterSpacing: -2),
-                  ),
-                ),
-              ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TrendFitMark(size: 96, radius: 20)
+                    .animate()
+                    .fadeIn(duration: AppMotion.slow, curve: AppMotion.enter)
+                    .scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), duration: AppMotion.slow, curve: AppMotion.spring),
+                const SizedBox(height: 20),
+                Text('TRENDFIT', style: AppTextStyles.wordmark.copyWith(letterSpacing: 4, fontSize: 18))
+                    .animate()
+                    .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 3)
+                    .slideY(begin: 0.3, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
+              ],
             ),
           ),
         ],
