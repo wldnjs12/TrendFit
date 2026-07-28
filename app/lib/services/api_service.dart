@@ -29,19 +29,57 @@ class ApiService {
     };
   }
 
+  /// 액세스 토큰(유효기간 30분)이 만료돼 401이 오면 리프레시 토큰으로 한 번 재발급받아
+  /// 같은 요청을 재시도한다. 세션이 오래 열려있어도 "로그인이 필요합니다" 오류 없이
+  /// 자연스럽게 이어지도록 하기 위함이다 — [send]는 매 호출마다 최신 _authHeaders를
+  /// 다시 읽어야 하므로 헤더를 미리 만들지 말고 클로저 안에서 만들어야 한다.
+  Future<http.Response> _withAuthRetry(Future<http.Response> Function() send) async {
+    var res = await send();
+    if (res.statusCode == 401 && await _refreshSession()) {
+      res = await send();
+    }
+    return res;
+  }
+
+  Future<bool> _refreshSession() async {
+    final refreshToken = AppSession.refreshToken;
+    if (refreshToken == null) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/auth/refresh'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+      if (res.statusCode != 200) return false;
+
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      await AppSession.save(
+        userId: body['userId'],
+        accessToken: body['accessToken'],
+        refreshToken: body['refreshToken'],
+        email: body['email'],
+        nickname: body['nickname'],
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> submitOnboarding(int userId, List<String> styleTags, String? bodyInfo) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/users/onboarding?userId=$userId'),
-      headers: _authHeaders,
-      body: jsonEncode({'styleTags': styleTags, 'bodyInfo': bodyInfo}),
-    );
+    final res = await _withAuthRetry(() => http.post(
+          Uri.parse('$baseUrl/api/users/onboarding?userId=$userId'),
+          headers: _authHeaders,
+          body: jsonEncode({'styleTags': styleTags, 'bodyInfo': bodyInfo}),
+        ));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
   }
 
   Future<UserPreference> fetchOnboarding(int userId) async {
-    final res = await http.get(Uri.parse('$baseUrl/api/users/onboarding?userId=$userId'), headers: _authHeaders);
+    final res = await _withAuthRetry(
+        () => http.get(Uri.parse('$baseUrl/api/users/onboarding?userId=$userId'), headers: _authHeaders));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
@@ -50,7 +88,8 @@ class ApiService {
 
   /// 회원관리 — 로그인된 본인 계정 정보 조회. (/api/users/me, JWT 인증 필요)
   Future<UserMe> fetchMe() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/users/me'), headers: _authHeaders);
+    final res =
+        await _withAuthRetry(() => http.get(Uri.parse('$baseUrl/api/users/me'), headers: _authHeaders));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
@@ -59,14 +98,16 @@ class ApiService {
 
   /// 회원관리 — 회원 탈퇴. (/api/users/me DELETE, JWT 인증 필요)
   Future<void> deleteAccount() async {
-    final res = await http.delete(Uri.parse('$baseUrl/api/users/me'), headers: _authHeaders);
+    final res =
+        await _withAuthRetry(() => http.delete(Uri.parse('$baseUrl/api/users/me'), headers: _authHeaders));
     if (res.statusCode != 200 && res.statusCode != 204) {
       throw _apiError(res);
     }
   }
 
   Future<List<ClothingItem>> fetchClosetItems(int userId) async {
-    final res = await http.get(Uri.parse('$baseUrl/api/closet/items?userId=$userId'), headers: _authHeaders);
+    final res = await _withAuthRetry(
+        () => http.get(Uri.parse('$baseUrl/api/closet/items?userId=$userId'), headers: _authHeaders));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
@@ -77,17 +118,20 @@ class ApiService {
   /// 다중 이미지 일괄 업로드. 반환값은 Vision 태깅만 끝난 미확정(unconfirmed) 아이템들이며,
   /// [confirmClosetItem]으로 핏/재질을 확정해야 옷장에서 완전히 쓸 수 있다.
   Future<List<ClothingItem>> uploadClosetItems(int userId, List<XFile> images) async {
-    final uri = Uri.parse('$baseUrl/api/closet/items?userId=$userId');
-    final request = http.MultipartRequest('POST', uri);
-    final token = AppSession.accessToken;
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    for (final image in images) {
-      final bytes = await image.readAsBytes();
-      request.files.add(http.MultipartFile.fromBytes('images', bytes, filename: image.name));
+    Future<http.Response> send() async {
+      final uri = Uri.parse('$baseUrl/api/closet/items?userId=$userId');
+      final request = http.MultipartRequest('POST', uri);
+      final token = AppSession.accessToken;
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      for (final image in images) {
+        final bytes = await image.readAsBytes();
+        request.files.add(http.MultipartFile.fromBytes('images', bytes, filename: image.name));
+      }
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
     }
 
-    final streamed = await request.send();
-    final res = await http.Response.fromStream(streamed);
+    final res = await _withAuthRetry(send);
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
@@ -96,11 +140,11 @@ class ApiService {
   }
 
   Future<ClothingItem> confirmClosetItem(int itemId, {required String fit, String? material}) async {
-    final res = await http.patch(
-      Uri.parse('$baseUrl/api/closet/items/$itemId/confirm'),
-      headers: _authHeaders,
-      body: jsonEncode({'fit': fit, 'material': material}),
-    );
+    final res = await _withAuthRetry(() => http.patch(
+          Uri.parse('$baseUrl/api/closet/items/$itemId/confirm'),
+          headers: _authHeaders,
+          body: jsonEncode({'fit': fit, 'material': material}),
+        ));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
@@ -109,15 +153,28 @@ class ApiService {
 
   /// [lat]/[lon]을 생략하면 서버가 서울시청 좌표를 기본값으로 쓴다(RecommendationRequest 참고).
   Future<RecommendationResult> requestRecommendation(int userId, String requestText, {double? lat, double? lon}) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/recommendations?userId=$userId'),
-      headers: _authHeaders,
-      body: jsonEncode({'requestText': requestText, 'lat': lat, 'lon': lon}),
-    );
+    final res = await _withAuthRetry(() => http.post(
+          Uri.parse('$baseUrl/api/recommendations?userId=$userId'),
+          headers: _authHeaders,
+          body: jsonEncode({'requestText': requestText, 'lat': lat, 'lon': lon}),
+        ));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }
     return RecommendationResult.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+  }
+
+  /// 추천 결과 화면에서 "오늘의 코디로 결정하기"를 눌렀을 때만 호출한다 — 이때부터 캘린더에
+  /// 노출된다(RecommendationLog.confirmed). 그냥 나가거나 "다른 옵션 추천받기"를 누르면
+  /// 호출하지 않아, 받아만 보고 채택하지 않은 추천은 캘린더에 남지 않는다.
+  Future<void> confirmRecommendation(int userId, int logId) async {
+    final res = await _withAuthRetry(() => http.patch(
+          Uri.parse('$baseUrl/api/recommendations/$logId/confirm?userId=$userId'),
+          headers: _authHeaders,
+        ));
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
   }
 
   /// 캘린더(위클리 아카이브). [weekStart]를 생략하면 서버가 이번 주 월요일부터 조회한다.
@@ -125,7 +182,8 @@ class ApiService {
     final query = weekStart == null
         ? 'userId=$userId'
         : 'userId=$userId&weekStart=${weekStart.toIso8601String().substring(0, 10)}';
-    final res = await http.get(Uri.parse('$baseUrl/api/recommendations/history?$query'), headers: _authHeaders);
+    final res = await _withAuthRetry(
+        () => http.get(Uri.parse('$baseUrl/api/recommendations/history?$query'), headers: _authHeaders));
     if (res.statusCode != 200) {
       throw _apiError(res);
     }

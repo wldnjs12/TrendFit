@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
@@ -28,6 +29,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RecommendationController {
 
+    /** 서버 배포 환경의 기본 타임존이 KST가 아닐 수 있어(예: Railway 컨테이너는 UTC) 명시한다. */
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final RecommendationService recommendationService;
 
     @PostMapping
@@ -45,8 +49,14 @@ public class RecommendationController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
         LocalDate resolvedWeekStart = weekStart != null
                 ? weekStart
-                : LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                : LocalDate.now(KST).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         return recommendationService.getWeeklyHistory(userId, resolvedWeekStart);
+    }
+
+    /** 결과 화면에서 "오늘의 코디로 결정하기"를 눌렀을 때만 호출 — 이때부터 캘린더에 노출된다. */
+    @PatchMapping("/{id}/confirm")
+    public void confirmRecommendation(@PathVariable Long id, @RequestParam("userId") Long userId) {
+        recommendationService.confirmRecommendation(userId, id);
     }
 
     @PostMapping("/{id}/purchase-callback")
