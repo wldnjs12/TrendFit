@@ -1,6 +1,7 @@
 package com.trendfit.domain.closet.dto;
 
 import com.trendfit.domain.closet.entity.ClothingItem;
+import com.trendfit.global.storage.ImageUrls;
 
 import java.time.LocalDateTime;
 
@@ -29,8 +30,8 @@ public record ClothingItemResponse(
                 item.getPattern(),
                 item.getFit(),
                 item.getMaterial(),
-                item.getImagePath(),
-                item.getCroppedImagePath(),
+                ImageUrls.toUrl(item.getImagePath()),
+                ImageUrls.toUrl(item.getCroppedImagePath()),
                 item.getSource(),
                 item.isConfirmed(),
                 item.getCreatedAt()

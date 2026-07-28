@@ -23,16 +23,38 @@ public class LocalFileImageStorage implements ImageStorage {
     @Override
     public String save(byte[] content, String originalFilename) {
         try {
-            Path baseDir = Path.of(properties.getBaseDir());
+            Path baseDir = baseDir();
             Files.createDirectories(baseDir);
 
             String storedName = UUID.randomUUID() + "-" + sanitize(originalFilename);
-            Path target = baseDir.resolve(storedName);
-            Files.write(target, content);
-            return target.toString();
+            Files.write(baseDir.resolve(storedName), content);
+            return storedName;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public byte[] load(String key) {
+        try {
+            Path target = resolveWithinBaseDir(key);
+            return Files.readAllBytes(target);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private Path resolveWithinBaseDir(String key) {
+        Path base = baseDir().normalize();
+        Path target = base.resolve(key).normalize();
+        if (!target.startsWith(base)) {
+            throw new IllegalArgumentException("잘못된 이미지 키: " + key);
+        }
+        return target;
+    }
+
+    private Path baseDir() {
+        return Path.of(properties.getBaseDir()).toAbsolutePath();
     }
 
     private String sanitize(String filename) {

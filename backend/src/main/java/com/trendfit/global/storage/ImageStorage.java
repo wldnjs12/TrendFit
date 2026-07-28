@@ -10,7 +10,14 @@ public interface ImageStorage {
     /**
      * @param content         저장할 이미지 바이트
      * @param originalFilename 원본 파일명(확장자·이름 힌트로만 사용, 그대로 저장되지 않음)
-     * @return 나중에 조회에 사용할 저장 경로/키
+     * @return 나중에 조회에 쓸 저장 키. 파일시스템 경로 등 구현 세부사항을 노출하지 않는다 —
+     *         호출 측은 이 키를 그대로 DB에 저장했다가 {@link #load(String)}에 되돌려준다.
      */
     String save(byte[] content, String originalFilename);
+
+    /**
+     * @param key {@link #save}가 반환한 저장 키
+     * @return 저장된 이미지 바이트
+     */
+    byte[] load(String key);
 }

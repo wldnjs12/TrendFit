@@ -12,6 +12,7 @@ import com.trendfit.domain.recommendation.repository.RecommendationLogRepository
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
+import com.trendfit.global.storage.ImageUrls;
 import com.trendfit.global.weather.WeatherClient;
 import com.trendfit.global.weather.WeatherSummary;
 import lombok.RequiredArgsConstructor;
@@ -91,7 +92,8 @@ public class RecommendationService {
         return new RecommendationResponse(
                 log.getId(),
                 selected.stream()
-                        .map(item -> new RecommendedItemResponse(item.id(), item.category(), item.croppedImagePath()))
+                        .map(item -> new RecommendedItemResponse(
+                                item.id(), item.category(), ImageUrls.toUrl(item.croppedImagePath())))
                         .toList(),
                 result.stylingNote(),
                 result.plusOne() == null ? null : new PlusOneResponse(
