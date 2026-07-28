@@ -126,9 +126,13 @@ class _SignupInfoScreenState extends State<SignupInfoScreen> {
     final selected = _gender == value;
     return InkWell(
       onTap: () => setState(() => _gender = value),
+      borderRadius: BorderRadius.circular(AppRadius.button),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(border: Border.all(color: selected ? AppColors.black : AppColors.borderLight)),
+        decoration: BoxDecoration(
+          border: Border.all(color: selected ? AppColors.black : AppColors.borderLight),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
         child: Text(
           value.toUpperCase(),
           textAlign: TextAlign.center,
@@ -146,9 +150,13 @@ class _SignupInfoScreenState extends State<SignupInfoScreen> {
     final selected = _bodyType == value;
     return InkWell(
       onTap: () => setState(() => _bodyType = selected ? null : value),
+      borderRadius: BorderRadius.circular(AppRadius.button),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(border: Border.all(color: selected ? AppColors.black : AppColors.borderLight)),
+        decoration: BoxDecoration(
+          border: Border.all(color: selected ? AppColors.black : AppColors.borderLight),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
         child: Text(
           value,
           textAlign: TextAlign.center,

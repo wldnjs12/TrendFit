@@ -44,6 +44,10 @@ public class RecommendationLog {
     @Column(nullable = false)
     private boolean confirmed;
 
+    /** 사용자가 직접 등록한 "실제 착용샷". AI가 추천해준 코디 이미지와는 별개다. */
+    @Column(length = 500)
+    private String wornPhotoPath;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -63,5 +67,10 @@ public class RecommendationLog {
     /** 결과 화면에서 사용자가 "오늘의 코디로 결정하기"를 눌렀을 때 호출한다. */
     public void confirm() {
         this.confirmed = true;
+    }
+
+    /** 캘린더에서 "오늘 실제로 입은 사진"을 등록/교체할 때 호출한다. */
+    public void attachWornPhoto(String wornPhotoPath) {
+        this.wornPhotoPath = wornPhotoPath;
     }
 }

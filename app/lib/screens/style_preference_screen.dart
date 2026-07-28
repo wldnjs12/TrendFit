@@ -162,7 +162,10 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
           _selectedTags.add(tag);
         }
       }),
-      child: Stack(
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: Stack(
         fit: StackFit.expand,
         children: [
           DecoratedBox(decoration: BoxDecoration(color: tone)),
@@ -204,6 +207,7 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

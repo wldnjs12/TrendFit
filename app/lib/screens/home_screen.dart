@@ -117,55 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildLocationChip() {
-    late final IconData icon;
-    late final String label;
-    switch (_locationStatus) {
-      case _LocationStatus.loading:
-        icon = Icons.location_searching;
-        label = '위치 확인 중';
-        break;
-      case _LocationStatus.available:
-        icon = Icons.location_on;
-        label = '내 위치 기반';
-        break;
-      case _LocationStatus.denied:
-        icon = Icons.location_off;
-        label = '위치 권한 필요';
-        break;
-      case _LocationStatus.unavailable:
-        icon = Icons.location_disabled;
-        label = '위치 미사용';
-        break;
-    }
-    final interactive = _locationStatus == _LocationStatus.denied || _locationStatus == _LocationStatus.unavailable;
-    return InkWell(
-      onTap: interactive ? _initLocation : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_locationStatus == _LocationStatus.loading)
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary),
-              )
-            else
-              Icon(icon, size: 16, color: AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(label, style: AppTextStyles.trackedLabel),
-          ],
-        ),
-      ),
-    ).animate(target: _locationStatus == _LocationStatus.loading ? 0 : 1).fadeIn(duration: AppMotion.fast);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TrendFitTopBar(actions: [_buildLocationChip()]),
+      appBar: const TrendFitTopBar(),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -196,7 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchBar() {
     return DecoratedBox(
-      decoration: const BoxDecoration(color: AppColors.white, border: Border.fromBorderSide(BorderSide(color: AppColors.black))),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: const Border.fromBorderSide(BorderSide(color: AppColors.black)),
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        boxShadow: AppShadows.soft,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Row(
@@ -265,38 +225,41 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result == null) {
       return AspectRatio(
         aspectRatio: 4 / 5,
-        child: ClipRect(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(color: AppColors.chipBackground),
-              // 아직 추천 결과가 없을 때 보여주는 예시 이미지(임시 무드 사진).
-              Image.network(
-                'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&q=80&auto=format&fit=crop',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.borderLight),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
+        child: Container(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.card),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(color: AppColors.chipBackground),
+                // 아직 추천 결과가 없을 때 보여주는 예시 이미지(임시 무드 사진).
+                Image.network(
+                  'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&q=80&auto=format&fit=crop',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
+                    ),
                   ),
                 ),
-              ),
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    '위에 오늘 입을 옷을 물어보면\n실제 옷장 사진으로 코디를 추천해드려요.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w500),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      '위에 오늘 입을 옷을 물어보면\n실제 옷장 사진으로 코디를 추천해드려요.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -311,50 +274,61 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         AspectRatio(
           aspectRatio: 4 / 5,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(color: AppColors.chipBackground),
-              if (hero?.croppedImagePath != null)
-                Image.network(_apiService.imageUrl(hero!.croppedImagePath!), fit: BoxFit.cover),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+          child: Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.card),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: AppColors.chipBackground),
+                  if (hero?.croppedImagePath != null)
+                    Image.network(_apiService.imageUrl(hero!.croppedImagePath!), fit: BoxFit.cover),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 24,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (items.isEmpty)
-                      const Text('추천할 조합을 찾지 못했어요. 옷장을 더 채워보세요.', style: TextStyle(color: AppColors.white))
-                    else ...[
-                      const Text('TODAY\'S PICK', style: TextStyle(color: AppColors.white, fontSize: 12, letterSpacing: 1.2)),
-                      const SizedBox(height: 8),
-                      Text('오늘의 추천 코디', style: AppTextStyles.headingBold.copyWith(color: AppColors.white)),
-                      if (result.stylingNote != null) ...[
-                        const SizedBox(height: 8),
-                        Text(result.stylingNote!, style: AppTextStyles.bodyOnDark.copyWith(fontSize: 14)),
+                  Positioned(
+                    left: 24,
+                    right: 24,
+                    bottom: 24,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (items.isEmpty)
+                          const Text('추천할 조합을 찾지 못했어요. 옷장을 더 채워보세요.', style: TextStyle(color: AppColors.white))
+                        else ...[
+                          const Text('TODAY\'S PICK', style: TextStyle(color: AppColors.white, fontSize: 12, letterSpacing: 1.2)),
+                          const SizedBox(height: 8),
+                          Text('오늘의 추천 코디', style: AppTextStyles.headingBold.copyWith(color: AppColors.white)),
+                          if (result.stylingNote != null) ...[
+                            const SizedBox(height: 8),
+                            Text(result.stylingNote!, style: AppTextStyles.bodyOnDark.copyWith(fontSize: 14)),
+                          ],
+                        ],
                       ],
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
         if (keyPiece != null) ...[
           const SizedBox(height: 24),
           DecoratedBox(
-            decoration: BoxDecoration(color: AppColors.white, border: Border.all(color: AppColors.borderSubtle)),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border.all(color: AppColors.borderSubtle),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              boxShadow: AppShadows.soft,
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -365,7 +339,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(keyPiece.category, style: AppTextStyles.headingBold),
                   const SizedBox(height: 16),
                   if (keyPiece.croppedImagePath != null)
-                    ClipRect(
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
                       child: SizedBox(
                         height: 180,
                         width: double.infinity,
@@ -380,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (result.plusOne != null) ...[
           const SizedBox(height: 24),
           DecoratedBox(
-            decoration: const BoxDecoration(color: AppColors.black),
+            decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(AppRadius.card)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(

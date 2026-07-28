@@ -12,6 +12,7 @@ public record RecommendationHistoryItemResponse(
         Long logId,
         LocalDate date,
         List<RecommendedItemResponse> items,
-        String requestText
+        String requestText,
+        String wornPhotoUrl
 ) {
 }

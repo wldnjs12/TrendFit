@@ -7,12 +7,14 @@ import com.trendfit.domain.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 트렌드 번역 추천 엔진 API. (PRD 4.2 F3 — 핵심 기능)
@@ -57,6 +59,15 @@ public class RecommendationController {
     @PatchMapping("/{id}/confirm")
     public void confirmRecommendation(@PathVariable Long id, @RequestParam("userId") Long userId) {
         recommendationService.confirmRecommendation(userId, id);
+    }
+
+    /** 캘린더에서 그날 실제로 입은 사진을 등록/교체한다. AI 추천 이미지와는 별개다. */
+    @PostMapping("/{id}/worn-photo")
+    public Map<String, String> uploadWornPhoto(@PathVariable Long id,
+                                                @RequestParam("userId") Long userId,
+                                                @RequestPart("image") MultipartFile image) {
+        String url = recommendationService.uploadWornPhoto(userId, id, image);
+        return Map.of("wornPhotoUrl", url);
     }
 
     @PostMapping("/{id}/purchase-callback")

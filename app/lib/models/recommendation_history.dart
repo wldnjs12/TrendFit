@@ -6,12 +6,14 @@ class RecommendationHistoryItem {
   final DateTime date;
   final List<RecommendedClothingItem> items;
   final String? requestText;
+  final String? wornPhotoUrl;
 
   RecommendationHistoryItem({
     required this.logId,
     required this.date,
     required this.items,
     this.requestText,
+    this.wornPhotoUrl,
   });
 
   factory RecommendationHistoryItem.fromJson(Map<String, dynamic> json) {
@@ -21,6 +23,7 @@ class RecommendationHistoryItem {
       date: DateTime.parse(json['date']),
       items: itemsJson.map((e) => RecommendedClothingItem.fromJson(e)).toList(),
       requestText: json['requestText'],
+      wornPhotoUrl: json['wornPhotoUrl'],
     );
   }
 }

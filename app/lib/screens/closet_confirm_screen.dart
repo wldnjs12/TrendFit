@@ -4,14 +4,13 @@ import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
 import '../services/api_service.dart';
-import '../widgets/swipe_confirm_card.dart';
 import '../widgets/trendfit_top_bar.dart';
 
-/// 방금 등록한(미확정) 옷들의 핏/재질을 순서대로 보정한다. (PRD 4.2 F2)
+/// 방금 등록한(미확정) 옷들의 핏/재질을 순서대로 확정한다. (PRD 4.2 F2)
 ///
-/// 핏은 스와이프 카드로 예/아니오를 골라 좁혀나가고("오버핏인가요?" -> "슬림핏인가요?"
-/// -> 둘 다 아니면 레귤러), 재질은 자유 입력 대신 자주 쓰는 칩 중에서 한 번에 고른다 —
-/// 둘 다 "1~2초 만에" 확정한다는 의도를 살리면서 실제 입력 난이도를 낮췄다.
+/// 스와이프로 예/아니오를 반복해서 좁혀나가던 방식 대신, 핏(오버핏/레귤러핏/슬림핏)과
+/// 소재를 한 화면에서 칩으로 바로 골라 확정한다 — 선택지가 뻔히 보이는 편이 더 빠르고
+/// 직관적이다.
 class ClosetConfirmScreen extends StatefulWidget {
   const ClosetConfirmScreen({super.key, required this.items});
 
@@ -21,12 +20,11 @@ class ClosetConfirmScreen extends StatefulWidget {
   State<ClosetConfirmScreen> createState() => _ClosetConfirmScreenState();
 }
 
-enum _Phase { fitQuestion, materialPick }
-
 class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
-  static const List<(String, String)> _fitQuestions = [
-    ('이 옷, 오버핏인가요?', 'OVERSIZED'),
-    ('그럼 슬림핏인가요?', 'SLIM'),
+  static const List<(String, String)> _fits = [
+    ('오버핏', 'OVERSIZED'),
+    ('레귤러핏', 'REGULAR'),
+    ('슬림핏', 'SLIM'),
   ];
 
   static const List<String> _materials = ['코튼', '데님', '니트', '울', '폴리에스터', '가죽', '린넨', '기타'];
@@ -34,39 +32,19 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
 
   int _itemIndex = 0;
-  int _fitStep = 0;
-  _Phase _phase = _Phase.fitQuestion;
+  String? _selectedFit;
+  String? _selectedMaterial;
   bool _submitting = false;
-  bool _fitConfirmed = false;
 
   ClothingItem get _currentItem => widget.items[_itemIndex];
 
-  Future<void> _onFitDecision(bool matched) async {
-    if (matched) {
-      setState(() => _phase = _Phase.materialPick);
-      return;
-    }
-    if (_fitStep < _fitQuestions.length - 1) {
-      setState(() => _fitStep++);
-    } else {
-      // 둘 다 아니면 레귤러
-      setState(() => _phase = _Phase.materialPick);
-    }
-  }
+  bool get _canConfirm => _selectedFit != null && _selectedMaterial != null && !_submitting;
 
-  String _decidedFit() {
-    if (_phase != _Phase.materialPick) {
-      return 'REGULAR';
-    }
-    // materialPick 단계로 넘어온 시점의 _fitStep이 마지막까지 갔다면(=오버핏/슬림핏 모두
-    // 아니오였다면) REGULAR, 아니면 해당 질문에서 "예"로 확정된 핏이다.
-    return _fitConfirmed ? _fitQuestions[_fitStep].$2 : 'REGULAR';
-  }
-
-  Future<void> _onMaterialPicked(String material) async {
+  Future<void> _confirmItem() async {
+    if (!_canConfirm) return;
     setState(() => _submitting = true);
     try {
-      await _apiService.confirmClosetItem(_currentItem.id, fit: _decidedFit(), material: material);
+      await _apiService.confirmClosetItem(_currentItem.id, fit: _selectedFit!, material: _selectedMaterial!);
       _goToNextItem();
     } catch (e) {
       if (!mounted) return;
@@ -83,9 +61,8 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
     }
     setState(() {
       _itemIndex++;
-      _fitStep = 0;
-      _fitConfirmed = false;
-      _phase = _Phase.fitQuestion;
+      _selectedFit = null;
+      _selectedMaterial = null;
     });
   }
 
@@ -114,34 +91,60 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: AppMotion.base,
-              switchInCurve: AppMotion.enter,
-              switchOutCurve: AppMotion.exit,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(animation), child: child),
+          child: AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.enter,
+            switchOutCurve: AppMotion.exit,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(animation),
+                child: child,
               ),
-              child: KeyedSubtree(
-                key: ValueKey('$_itemIndex-$_phase-$_fitStep'),
-                child: _phase == _Phase.fitQuestion
-                    ? SwipeConfirmCard(
-                        imageUrl: _apiService.imageUrl(imagePath),
-                        question: _fitQuestions[_fitStep].$1,
-                        onConfirm: () {
-                          _fitConfirmed = true;
-                          _onFitDecision(true);
-                        },
-                        onReject: () {
-                          _fitConfirmed = false;
-                          _onFitDecision(false);
-                        },
-                      )
-                    : _buildMaterialPicker(),
-              ),
+            ),
+            child: Column(
+              key: ValueKey(_itemIndex),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  child: Container(
+                    decoration: BoxDecoration(boxShadow: AppShadows.card),
+                    child: Image.network(_apiService.imageUrl(imagePath), height: 300, width: double.infinity, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text('핏감이 어떤가요?', style: AppTextStyles.koreanHeadline.copyWith(fontSize: 19)),
+                const SizedBox(height: 12),
+                _choiceRow(
+                  options: _fits.map((f) => f.$1).toList(),
+                  selected: _selectedFit == null
+                      ? null
+                      : _fits.firstWhere((f) => f.$2 == _selectedFit).$1,
+                  onSelected: (label) => setState(() => _selectedFit = _fits.firstWhere((f) => f.$1 == label).$2),
+                ),
+                const SizedBox(height: 28),
+                Text('소재는 뭔가요?', style: AppTextStyles.koreanHeadline.copyWith(fontSize: 19)),
+                const SizedBox(height: 12),
+                _choiceRow(
+                  options: _materials,
+                  selected: _selectedMaterial,
+                  onSelected: (label) => setState(() => _selectedMaterial = label),
+                ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _canConfirm ? _confirmItem : null,
+                    child: _submitting
+                        ? const SizedBox(
+                            height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                        : const Text('CONFIRM'),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -149,37 +152,30 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
     );
   }
 
-  Widget _buildMaterialPicker() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('재질을 골라주세요', style: AppTextStyles.headingBold.copyWith(fontSize: 20)),
-        const SizedBox(height: 20),
-        if (_submitting)
-          const CircularProgressIndicator()
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: _materials.asMap().entries.map((entry) {
-              return ChoiceChip(
-                label: Text(entry.value),
-                selected: false,
-                onSelected: (_) => _onMaterialPicked(entry.value),
-                shape: const RoundedRectangleBorder(),
-                side: const BorderSide(color: AppColors.borderLight),
-                backgroundColor: AppColors.white,
-                labelStyle: const TextStyle(color: AppColors.textPrimary),
-              ).animate().fadeIn(duration: AppMotion.fast, delay: AppMotion.stagger * entry.key).scale(
-                    begin: const Offset(0.9, 0.9),
-                    end: const Offset(1, 1),
-                    duration: AppMotion.fast,
-                    curve: AppMotion.enter,
-                  );
-            }).toList(),
-          ),
-      ],
+  Widget _choiceRow({required List<String> options, required String? selected, required ValueChanged<String> onSelected}) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.asMap().entries.map((entry) {
+        final label = entry.value;
+        final isSelected = label == selected;
+        return ChoiceChip(
+          label: Text(label),
+          selected: isSelected,
+          onSelected: (_) => onSelected(label),
+          showCheckmark: false,
+          shape: const StadiumBorder(),
+          side: BorderSide(color: isSelected ? AppColors.black : AppColors.borderLight),
+          selectedColor: AppColors.black,
+          backgroundColor: AppColors.white,
+          labelStyle: TextStyle(color: isSelected ? AppColors.white : AppColors.textPrimary, fontWeight: FontWeight.w600),
+        ).animate().fadeIn(duration: AppMotion.fast, delay: AppMotion.stagger * entry.key).scale(
+              begin: const Offset(0.9, 0.9),
+              end: const Offset(1, 1),
+              duration: AppMotion.fast,
+              curve: AppMotion.enter,
+            );
+      }).toList(),
     );
   }
 }

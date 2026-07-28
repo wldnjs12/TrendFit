@@ -177,6 +177,28 @@ class ApiService {
     }
   }
 
+  /// 캘린더에서 "오늘 실제로 입은 사진"을 등록/교체한다. AI가 추천해준 코디 이미지와는
+  /// 별개로 저장된다 — Vision 재분석은 하지 않고 그대로 저장만 한다.
+  Future<String> uploadWornPhoto(int userId, int logId, XFile image) async {
+    Future<http.Response> send() async {
+      final uri = Uri.parse('$baseUrl/api/recommendations/$logId/worn-photo?userId=$userId');
+      final request = http.MultipartRequest('POST', uri);
+      final token = AppSession.accessToken;
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      final bytes = await image.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: image.name));
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    }
+
+    final res = await _withAuthRetry(send);
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
+    final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    return body['wornPhotoUrl'] as String;
+  }
+
   /// 캘린더(위클리 아카이브). [weekStart]를 생략하면 서버가 이번 주 월요일부터 조회한다.
   Future<List<RecommendationHistoryItem>> fetchWeeklyHistory(int userId, {DateTime? weekStart}) async {
     final query = weekStart == null

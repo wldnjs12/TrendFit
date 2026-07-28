@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
@@ -19,9 +20,14 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
+  final ImagePicker _picker = ImagePicker();
   late DateTime _weekStart;
   late Future<List<RecommendationHistoryItem>> _historyFuture;
   int _shiftDirection = 0;
+
+  /// 업로드 직후 새로고침 없이 바로 반영하기 위한 로컬 오버라이드 (logId -> 착용샷 URL).
+  final Map<int, String> _wornPhotoOverrides = {};
+  int? _uploadingLogId;
 
   static const _dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -43,6 +49,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _weekStart = _weekStart.add(Duration(days: 7 * deltaWeeks));
       _load();
     });
+  }
+
+  /// AI가 추천해준 코디 사진과 별개로, 그날 실제로 입은 모습을 직접 등록한다.
+  Future<void> _uploadWornPhoto(RecommendationHistoryItem entry) async {
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image == null) return;
+    setState(() => _uploadingLogId = entry.logId);
+    try {
+      final url = await _apiService.uploadWornPhoto(AppSession.userId!, entry.logId, image);
+      if (!mounted) return;
+      setState(() => _wornPhotoOverrides[entry.logId] = url);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('착용샷 등록에 실패했어요: $e')));
+    } finally {
+      if (mounted) setState(() => _uploadingLogId = null);
+    }
   }
 
   @override
@@ -162,38 +185,68 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _dayCard(int weekday, RecommendationHistoryItem? entry, {bool fullWidth = false, double height = 160}) {
     final date = _weekStart.add(Duration(days: weekday - 1));
     final dateLabel = '${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-    final imagePath = entry?.items.isNotEmpty == true ? entry!.items.first.croppedImagePath : null;
+    final aiImagePath = entry?.items.isNotEmpty == true ? entry!.items.first.croppedImagePath : null;
+    final wornUrl = entry == null ? null : (_wornPhotoOverrides[entry.logId] ?? entry.wornPhotoUrl);
     final caption = entry?.requestText;
+    final uploading = entry != null && _uploadingLogId == entry.logId;
 
-    return SizedBox(
+    return Container(
       height: height,
       width: fullWidth ? double.infinity : null,
-      child: ClipRect(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: entry == null ? null : AppShadows.soft),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: Stack(
           fit: StackFit.expand,
           children: [
             Container(color: AppColors.chipBackground),
-            if (imagePath != null)
-              Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover)
+            if (wornUrl != null)
+              Image.network(_apiService.imageUrl(wornUrl), fit: BoxFit.cover)
+            else if (aiImagePath != null)
+              Image.network(_apiService.imageUrl(aiImagePath), fit: BoxFit.cover)
             else
-              // 기록 없는 요일의 배경(임시 예시 이미지) — 낮은 불투명도로 "기록 있음"과 구분한다.
-              Opacity(
-                opacity: 0.35,
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1573311392049-4186e3a47e9c?w=400&q=80&auto=format&fit=crop',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                ),
-              ),
+              // 기록 없는 요일 — 자극적인 스톡사진 대신 은은한 아이콘만 두어 깔끔하게 비워둔다.
+              const Center(child: Icon(Icons.checkroom_outlined, color: AppColors.textPlaceholder, size: 28)),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: entry == null ? 0.15 : 0.55)],
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: entry == null ? 0.05 : 0.55)],
                 ),
               ),
             ),
+            if (wornUrl != null)
+              Positioned(
+                top: 10,
+                left: 10,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(999)),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    child: Text('MY LOOK', style: TextStyle(color: AppColors.black, fontSize: 10, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            if (entry != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: InkWell(
+                  onTap: uploading ? null : () => _uploadWornPhoto(entry),
+                  borderRadius: BorderRadius.circular(999),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(999)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: uploading
+                          ? const SizedBox(
+                              width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                          : const Icon(Icons.add_a_photo_outlined, size: 14, color: AppColors.white),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: 12,
               right: 12,

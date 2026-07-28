@@ -68,7 +68,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _openUpload,
         backgroundColor: AppColors.black,
-        shape: const RoundedRectangleBorder(),
         child: const Icon(Icons.add, color: AppColors.white),
       ).animate().scale(
             begin: const Offset(0, 0),
@@ -156,7 +155,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
             selected: selected,
             onSelected: (_) => setState(() => _filter = category),
             showCheckmark: false,
-            shape: const RoundedRectangleBorder(),
+            shape: const StadiumBorder(),
             side: BorderSide(color: selected ? AppColors.black : AppColors.borderLight),
             selectedColor: AppColors.black,
             backgroundColor: AppColors.white,
@@ -169,43 +168,47 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
   Widget _itemCard(ClothingItem item) {
     final imagePath = item.croppedImagePath ?? item.imagePath;
-    return ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(color: AppColors.chipBackground),
-          Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 10,
-            right: 10,
-            bottom: 10,
-            child: Text(
-              _categoryLabels[item.category] ?? item.category,
-              style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-          ),
-          if (!item.confirmed)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(color: Colors.black54),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  child: Text('보정 필요', style: TextStyle(color: AppColors.white, fontSize: 10)),
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.soft),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(color: AppColors.chipBackground),
+            Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
                 ),
               ),
             ),
-        ],
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: Text(
+                _categoryLabels[item.category] ?? item.category,
+                style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (!item.confirmed)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    child: Text('보정 필요', style: TextStyle(color: AppColors.white, fontSize: 10)),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -213,8 +216,12 @@ class _ClosetScreenState extends State<ClosetScreen> {
   Widget _addItemCard() {
     return InkWell(
       onTap: _openUpload,
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: DecoratedBox(
-        decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight, style: BorderStyle.solid)),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.borderLight),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
         child: const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

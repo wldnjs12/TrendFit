@@ -21,6 +21,31 @@ class AppColors {
   static const danger = Color(0xFFB3261E);
 }
 
+/// 카드/버튼 모서리 반경 토큰. 완전히 각진 0px 대신 살짝 둥근 8~16px대를 써서
+/// (2026 UI 트렌드 — 에디토리얼 미니멀도 완전 플랫보다는 은은한 depth/라운드로 이동)
+/// 브랜드의 각진 정체성은 유지하되 더 세련된 인상을 준다. 칩은 완전한 필(pill) 형태.
+class AppRadius {
+  const AppRadius._();
+
+  static const card = 14.0;
+  static const button = 6.0;
+  static const chip = 999.0;
+}
+
+/// 완전 플랫(elevation 0) 대신 아주 옅은 그림자로 위계를 준다. 채도 없는 검정 틴트만
+/// 써서 모노톤 팔레트를 해치지 않는다.
+class AppShadows {
+  const AppShadows._();
+
+  static List<BoxShadow> get card => [
+        BoxShadow(color: AppColors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 6)),
+      ];
+
+  static List<BoxShadow> get soft => [
+        BoxShadow(color: AppColors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+      ];
+}
+
 /// 대문자 + 넓은 트래킹 라벨에 쓰는 헬퍼 (예: "STEP 01", "HOME", "TODAY'S STREAK").
 class AppTextStyles {
   const AppTextStyles._();
@@ -144,7 +169,7 @@ class AppTheme {
           foregroundColor: AppColors.white,
           disabledBackgroundColor: AppColors.textPlaceholder,
           disabledForegroundColor: AppColors.white,
-          shape: const RoundedRectangleBorder(),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
           padding: const EdgeInsets.symmetric(vertical: 18),
           textStyle: AppTextStyles.buttonLabel,
           elevation: 0,
@@ -154,7 +179,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           side: const BorderSide(color: AppColors.black),
-          shape: const RoundedRectangleBorder(),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
           padding: const EdgeInsets.symmetric(vertical: 16),
           textStyle: AppTextStyles.trackedLabelBig.copyWith(color: AppColors.textPrimary),
         ),

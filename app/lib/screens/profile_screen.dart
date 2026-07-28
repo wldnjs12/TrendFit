@@ -7,6 +7,7 @@ import '../config/app_theme.dart';
 import '../models/user_preference.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'login_screen.dart';
 import 'style_preference_screen.dart';
@@ -71,9 +72,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
       );
+      final placeName = await LocationService.reverseGeocode(position.latitude, position.longitude);
       if (!mounted) return;
       setState(() {
-        _locationSubtitle = '위도 ${position.latitude.toStringAsFixed(2)}, 경도 ${position.longitude.toStringAsFixed(2)} 기반';
+        _locationSubtitle = placeName ?? '위치를 확인했지만 지역명을 가져오지 못했어요';
         _locationTappable = true;
       });
     } catch (_) {

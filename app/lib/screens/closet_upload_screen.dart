@@ -124,8 +124,12 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
               const SizedBox(height: 24),
               InkWell(
                 onTap: _pickMore,
+                borderRadius: BorderRadius.circular(AppRadius.card),
                 child: DecoratedBox(
-                  decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight)),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.borderLight),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                  ),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 48),
                     child: Column(
@@ -166,7 +170,8 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
                   itemCount: _picked.length,
                   itemBuilder: (context, index) {
                     final file = _picked[index];
-                    return ClipRect(
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.card),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [

@@ -14,13 +14,16 @@ import com.trendfit.domain.recommendation.repository.RecommendationLogRepository
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
+import com.trendfit.global.storage.ImageStorage;
 import com.trendfit.global.storage.ImageUrls;
 import com.trendfit.global.weather.WeatherClient;
 import com.trendfit.global.weather.WeatherSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -61,6 +64,7 @@ public class RecommendationService {
     private final ClaudeRecommendationEngine recommendationEngine;
     private final RecommendationLogRepository recommendationLogRepository;
     private final ObjectMapper objectMapper;
+    private final ImageStorage imageStorage;
 
     @Transactional
     public RecommendationResponse requestRecommendation(Long userId, String requestText, Double lat, Double lon) {
@@ -133,7 +137,8 @@ public class RecommendationService {
                                 .map(item -> new RecommendedItemResponse(
                                         item.id(), item.category(), ImageUrls.toUrl(item.croppedImagePath())))
                                 .toList(),
-                        log.getRequestText()))
+                        log.getRequestText(),
+                        ImageUrls.toUrl(log.getWornPhotoPath())))
                 .toList();
     }
 
@@ -146,6 +151,27 @@ public class RecommendationService {
             throw new IllegalArgumentException("본인의 추천 이력만 확정할 수 있습니다.");
         }
         log.confirm();
+    }
+
+    /**
+     * 캘린더에서 사용자가 "오늘 실제로 이렇게 입었어요" 사진을 등록/교체한다. AI가 추천한 코디
+     * 이미지와는 별개로 저장되며, 옷장 등록 때처럼 Vision 분석은 하지 않고 그대로 저장만 한다
+     * (CLAUDE.md §5 — Vision 재호출 금지 원칙과 별개로, 이 사진은 애초에 분석 대상이 아니다).
+     */
+    @Transactional
+    public String uploadWornPhoto(Long userId, Long logId, MultipartFile image) {
+        RecommendationLog log = recommendationLogRepository.findById(logId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 추천 이력: " + logId));
+        if (!log.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 추천 이력에만 착용샷을 등록할 수 있습니다.");
+        }
+        try {
+            String key = imageStorage.save(image.getBytes(), image.getOriginalFilename());
+            log.attachWornPhoto(key);
+            return ImageUrls.toUrl(key);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private List<Long> readItemIds(String json) {

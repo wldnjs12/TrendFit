@@ -147,7 +147,12 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
 
   Widget _buildInsightBox() {
     return DecoratedBox(
-      decoration: BoxDecoration(color: AppColors.white, border: Border.all(color: AppColors.borderHairline)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border.all(color: AppColors.borderHairline),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: AppShadows.soft,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -175,36 +180,39 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(border: Border.all(color: AppColors.borderSubtle)),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Container(color: AppColors.chipBackground),
-                if (item.croppedImagePath != null)
-                  Image.network(apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.cover)
-                else
-                  // 옷장 사진이 없을 때 대체하는 예시 이미지.
-                  Image.network(
-                    'https://images.unsplash.com/photo-1467043237213-65f2da53396f?w=400&q=80&auto=format&fit=crop',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                  ),
-                Positioned(
-                  left: 16,
-                  top: 16,
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(color: AppColors.black),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      child: Text('내 옷장 아이템',
-                          style: TextStyle(color: AppColors.white, fontSize: 10, letterSpacing: 0.5)),
+        Container(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.soft),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: AppColors.chipBackground),
+                  if (item.croppedImagePath != null)
+                    Image.network(apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.cover)
+                  else
+                    // 옷장 사진이 없을 때 대체하는 예시 이미지.
+                    Image.network(
+                      'https://images.unsplash.com/photo-1467043237213-65f2da53396f?w=400&q=80&auto=format&fit=crop',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                    ),
+                  Positioned(
+                    left: 16,
+                    top: 16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(999)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        child: Text('내 옷장 아이템',
+                            style: TextStyle(color: AppColors.white, fontSize: 10, letterSpacing: 0.5)),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -219,7 +227,7 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
   Widget _buildPlusOneCard() {
     final plusOne = result.plusOne!;
     return DecoratedBox(
-      decoration: const BoxDecoration(color: AppColors.black),
+      decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(AppRadius.card)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
