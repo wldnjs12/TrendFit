@@ -32,6 +32,9 @@ trendfit:
       api-key: ${CLAUDE_API_KEY:}
       model: claude-sonnet-5
   weather:
+    # 공공데이터포털 기상청 단기예보조회(getVilageFcst) 서비스키 — "인코딩(Encoding)" 버전 사용
+    # (A3, 2026-07-27 결정). WeatherClient가 쿼리스트링을 직접 조립하므로 "디코딩" 키를 넣으면
+    # 이중 인코딩으로 401이 난다.
     api-key: ${WEATHER_API_KEY:}
   trend-batch:
     cron: "0 0 3 * * *"   # 매일 새벽 3시 트렌드 수집 배치 실행
