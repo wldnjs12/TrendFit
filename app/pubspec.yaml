@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   http: ^1.2.1        # 백엔드 REST API 호출
   provider: ^6.1.2     # 취향 프로필 / 옷장 상태 관리
+  image_picker: ^1.1.2  # 옷장 등록 시 사진 선택 (모바일+웹 공용)
 
 dev_dependencies:
   flutter_test:
