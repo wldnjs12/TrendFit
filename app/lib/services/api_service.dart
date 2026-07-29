@@ -42,7 +42,18 @@ class ApiService {
     return res;
   }
 
-  Future<bool> _refreshSession() async {
+  /// 서버가 리프레시 토큰을 매번 새로 발급/교체(rotation)하기 때문에, 화면 진입 시 흔한
+  /// 여러 API 동시 호출이 각자 401 -> refresh를 따로 시도하면 먼저 도착한 요청이 토큰을
+  /// 교체해버려 나머지 요청들은 "이미 교체된(구) 토큰"으로 refresh를 시도해 실패한다 —
+  /// 실제로는 로그인 세션이 멀쩡한데도 "로그인이 필요합니다" 오류가 뜨는 원인이었다.
+  /// 진행 중인 refresh를 정적으로 공유해 앱 전체에서 실제 HTTP 요청은 한 번만 나가도록 한다.
+  static Future<bool>? _refreshInFlight;
+
+  Future<bool> _refreshSession() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  Future<bool> _doRefresh() async {
     final refreshToken = AppSession.refreshToken;
     if (refreshToken == null) return false;
     try {
