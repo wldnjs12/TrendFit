@@ -176,7 +176,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
           fit: StackFit.expand,
           children: [
             Container(color: AppColors.chipBackground),
-            Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.cover),
+            // BoxFit.cover는 카드 비율과 안 맞는(세로로 긴) 사진의 위아래를 잘라내 옷 일부만
+            // 보이게 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다(빈 여백은 배경색).
+            Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.contain),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

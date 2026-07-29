@@ -176,12 +176,12 @@ class _SignupInfoScreenState extends State<SignupInfoScreen> {
       children: [
         _fieldLabel(label),
         const SizedBox(height: 8),
-        IntrinsicWidth(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(suffixText: '  $suffix'),
-          ),
+        // IntrinsicWidth를 쓰면 입력값 글자 수만큼만 필드 폭(=밑줄 길이)이 잡혀서 이름 필드보다
+        // 훨씬 짧아 보였다 — 이름 필드처럼 처음부터 전체 폭을 차지하게 한다.
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(suffixText: '  $suffix'),
         ),
       ],
     );

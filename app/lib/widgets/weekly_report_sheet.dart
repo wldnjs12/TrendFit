@@ -8,6 +8,7 @@ import '../config/app_theme.dart';
 import '../models/recommendation_history.dart';
 import '../services/api_service.dart';
 import '../utils/image_saver.dart';
+import 'outfit_mosaic.dart';
 
 /// 한 주(7일)가 모두 채워졌을 때, 인스타그램 스토리(9:16)에 올리기 좋은 합성 이미지를 만들어
 /// 저장할 수 있는 바텀시트. 인스타그램 API와는 무관한 로컬 이미지 합성/다운로드 기능이다
@@ -44,16 +45,20 @@ class _WeeklyReportSheetState extends State<WeeklyReportSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _preloadImages());
   }
 
-  String? _imageUrlFor(int weekday) {
+  /// 착용샷이 있으면 그것만, 없으면 추천받은 아이템 전부(상하의 세트)를 모자이크로 보여준다.
+  List<String> _imageUrlsFor(int weekday) {
     final entry = widget.byDay[weekday];
-    if (entry == null) return null;
-    final path = entry.wornPhotoUrl ??
-        (entry.items.isNotEmpty ? entry.items.first.croppedImagePath : null);
-    return path == null ? null : widget.apiService.imageUrl(path);
+    if (entry == null) return const [];
+    if (entry.wornPhotoUrl != null) return [widget.apiService.imageUrl(entry.wornPhotoUrl!)];
+    return entry.items
+        .map((item) => item.croppedImagePath)
+        .whereType<String>()
+        .map(widget.apiService.imageUrl)
+        .toList();
   }
 
   Future<void> _preloadImages() async {
-    final urls = [for (int day = 1; day <= 7; day++) _imageUrlFor(day)].whereType<String>();
+    final urls = [for (int day = 1; day <= 7; day++) ..._imageUrlsFor(day)];
     await Future.wait(urls.map((url) => precacheImage(NetworkImage(url), context)));
     if (mounted) setState(() => _imagesReady = true);
   }
@@ -165,12 +170,28 @@ class _WeeklyReportSheetState extends State<WeeklyReportSheet> {
           const Text('이번 주 코디 기록', style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 14),
           Expanded(
-            child: GridView.count(
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [for (int day = 1; day <= 7; day++) _reportTile(day)],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // GridView.count의 기본 childAspectRatio(1:1, 정사각형 셀)로 계산하면
+                // 2열×4행에 필요한 높이가 이 Expanded의 실제 가용 높이보다 커져서,
+                // NeverScrollableScrollPhysics 때문에 스크롤도 못 하고 마지막 행(일요일,
+                // 토요일 일부)이 그대로 잘려나갔다(캡처 이미지도 화면과 동일하게 잘림).
+                // 실제 가용 공간에 맞춰 셀 비율을 역산해 7칸이 항상 다 보이게 한다.
+                const crossAxisCount = 2;
+                const mainAxisSpacing = 8.0;
+                const crossAxisSpacing = 8.0;
+                const rowCount = 4; // ceil(7 / crossAxisCount)
+                final cellWidth = (constraints.maxWidth - crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
+                final cellHeight = (constraints.maxHeight - mainAxisSpacing * (rowCount - 1)) / rowCount;
+                return GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: mainAxisSpacing,
+                  crossAxisSpacing: crossAxisSpacing,
+                  childAspectRatio: cellWidth / cellHeight,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [for (int day = 1; day <= 7; day++) _reportTile(day)],
+                );
+              },
             ),
           ),
         ],
@@ -179,14 +200,14 @@ class _WeeklyReportSheetState extends State<WeeklyReportSheet> {
   }
 
   Widget _reportTile(int weekday) {
-    final url = _imageUrlFor(weekday);
+    final urls = _imageUrlsFor(weekday);
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Container(color: AppColors.chipBackground),
-          if (url != null) Image.network(url, fit: BoxFit.cover),
+          OutfitMosaic(imageUrls: urls),
           Positioned(
             left: 6,
             bottom: 6,

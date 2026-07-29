@@ -191,8 +191,11 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                 fit: StackFit.expand,
                 children: [
                   Container(color: AppColors.chipBackground),
+                  // BoxFit.cover는 정사각형 카드 비율과 안 맞는(세로로 긴) 사진의 위아래를
+                  // 잘라내 옷 일부만 보이게 만든다 — 옷 전체가 항상 보이도록 contain으로
+                  // 채운다(빈 여백은 배경색).
                   if (item.croppedImagePath != null)
-                    Image.network(apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.cover)
+                    Image.network(apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.contain)
                   else
                     // 옷장 사진이 없을 때 대체하는 예시 이미지.
                     Image.network(

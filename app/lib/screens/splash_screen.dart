@@ -6,9 +6,11 @@ import '../config/app_theme.dart';
 import '../widgets/trendfit_mark.dart';
 import 'login_screen.dart';
 import 'main_tab_shell.dart';
+import 'signup_info_screen.dart';
 
-/// 스플래시 화면. (Figma "스플래시 화면") 잠깐 브랜드 워드마크를 보여준 뒤, 저장된 로그인
-/// 세션이 있으면 바로 메인 탭으로, 없으면 로그인 화면으로 넘어간다(회원관리 — 로그인 유지).
+/// 스플래시 화면. (Figma "스플래시 화면") 잠깐 브랜드 워드마크를 보여준 뒤, 세션 상태에 따라
+/// 분기한다: 로그인 안 됨 -> 로그인 화면, 로그인은 됐지만 온보딩 미완료(2단계 온보딩 도중
+/// 새로고침/재접속 등) -> 온보딩 이어서, 둘 다 완료 -> 바로 메인 탭(회원관리 — 로그인 유지).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -22,7 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Timer(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      final next = AppSession.isLoggedIn ? const MainTabShell() : const LoginScreen();
+      final Widget next;
+      if (!AppSession.isLoggedIn) {
+        next = const LoginScreen();
+      } else if (!AppSession.onboardingCompleted) {
+        next = const SignupInfoScreen();
+      } else {
+        next = const MainTabShell();
+      }
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: AppMotion.slow,

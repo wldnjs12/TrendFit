@@ -16,14 +16,27 @@ class MainTabShell extends StatefulWidget {
 }
 
 class _MainTabShellState extends State<MainTabShell> {
-  int _index = 0;
+  static const _calendarIndex = 2;
 
-  static const _screens = [
-    HomeScreen(),
-    ClosetScreen(),
-    CalendarScreen(),
-    ProfileScreen(),
+  int _index = 0;
+  final _calendarKey = GlobalKey<CalendarScreenState>();
+
+  late final List<Widget> _screens = [
+    const HomeScreen(),
+    const ClosetScreen(),
+    CalendarScreen(key: _calendarKey),
+    const ProfileScreen(),
   ];
+
+  void _onTap(int value) {
+    setState(() => _index = value);
+    // 4개 탭 모두 계속 마운트돼 있는 채로 opacity만 바뀌는 구조라(아래 주석 참고),
+    // 다른 탭(홈)에서 추천을 확정해도 캘린더 탭은 그 갱신을 모른다. 캘린더 탭으로
+    // 들어올 때마다 이력을 다시 불러와 "새로고침해야 반영되는" 문제를 없앤다.
+    if (value == _calendarIndex) {
+      _calendarKey.currentState?.refresh();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +60,7 @@ class _MainTabShellState extends State<MainTabShell> {
       ),
       bottomNavigationBar: TrendFitBottomNav(
         currentIndex: _index,
-        onTap: (value) => setState(() => _index = value),
+        onTap: _onTap,
       ),
     );
   }

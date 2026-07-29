@@ -62,10 +62,15 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
         _selectedTags.toList(),
         _bodyInfoController.text.trim().isEmpty ? null : _bodyInfoController.text.trim(),
       );
-      if (!mounted) return;
       if (widget._isReconfigure) {
+        if (!mounted) return;
         Navigator.of(context).pop(true);
       } else {
+        // 최초 온보딩 완료 — 세션에도 반영해야 재접속 시 스플래시가 다시 온보딩으로
+        // 돌려보내지 않는다(로그인 직후 저장되는 세션과 온보딩 완료는 별개 시점이라
+        // 이 반영이 없으면 완료 전 새로고침 시의 문제가 완료 후에도 남는다).
+        await AppSession.markOnboardingCompleted();
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainTabShell()),
         );

@@ -47,6 +47,7 @@ class AuthService {
       refreshToken: result.refreshToken,
       email: result.email,
       nickname: result.nickname,
+      onboardingCompleted: result.onboardingCompleted,
     );
     return result;
   }

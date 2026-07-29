@@ -6,6 +6,7 @@ import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../models/recommendation_history.dart';
 import '../services/api_service.dart';
+import '../widgets/outfit_mosaic.dart';
 import '../widgets/trendfit_mark.dart';
 import '../widgets/weekly_report_sheet.dart';
 
@@ -18,10 +19,14 @@ class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  State<CalendarScreen> createState() => CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+/// MainTabShell이 모든 탭을 계속 마운트해둔 채 전환하는 구조라(IndexedStack이 아니라
+/// opacity만 토글) 이 State는 initState 이후로 다시 생성되지 않는다. 그래서 탭 전환만으로는
+/// 새 추천 확정 내역이 반영되지 않아 — MainTabShell이 GlobalKey로 이 State를 들고 있다가
+/// 캘린더 탭으로 전환될 때마다 [refresh]를 호출해 최신 이력을 다시 불러온다.
+class CalendarScreenState extends State<CalendarScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
   final ImagePicker _picker = ImagePicker();
   late DateTime _weekStart;
@@ -48,6 +53,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _load() {
     _historyFuture = _apiService.fetchWeeklyHistory(AppSession.userId!, weekStart: _weekStart);
   }
+
+  /// 다른 화면(추천 확정 등)에서 돌아와 이 탭이 다시 활성화될 때 이력을 새로 불러온다.
+  void refresh() => setState(_load);
 
   void _shiftWeek(int deltaWeeks) {
     setState(() {
@@ -265,7 +273,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _dayCard(int weekday, RecommendationHistoryItem? entry, {bool fullWidth = false, double height = 160}) {
     final date = _weekStart.add(Duration(days: weekday - 1));
     final dateLabel = '${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-    final aiImagePath = entry?.items.isNotEmpty == true ? entry!.items.first.croppedImagePath : null;
+    final outfitUrls = entry == null
+        ? const <String>[]
+        : entry.items
+            .map((item) => item.croppedImagePath)
+            .whereType<String>()
+            .map(_apiService.imageUrl)
+            .toList();
     final wornUrl = entry == null ? null : (_wornPhotoOverrides[entry.logId] ?? entry.wornPhotoUrl);
     final caption = entry?.requestText;
     final uploading = entry != null && _uploadingLogId == entry.logId;
@@ -277,8 +291,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Container(color: AppColors.chipBackground),
             if (wornUrl != null)
               Image.network(_apiService.imageUrl(wornUrl), fit: BoxFit.cover)
-            else if (aiImagePath != null)
-              Image.network(_apiService.imageUrl(aiImagePath), fit: BoxFit.cover)
+            else if (outfitUrls.isNotEmpty)
+              OutfitMosaic(imageUrls: outfitUrls)
             else
               // 기록 없는 요일 — 탭하면 바로 착용샷을 등록할 수 있다는 걸 아이콘으로 알려준다.
               Center(
@@ -343,16 +357,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    caption != null && caption.isNotEmpty ? caption : (entry == null ? '탭해서 착용샷 등록' : '기록 없음'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: entry == null ? AppColors.textTertiary : AppColors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                  // entry가 있는데 caption(requestText)만 없는 경우는 "사진만 바로 등록"한
+                  // 케이스(route 2)라 실제로는 기록이 있다 — "기록 없음"이라고 하면 착용샷이
+                  // 없다는 뜻으로 오해되므로, 이땐 아무 텍스트도 보여주지 않는다.
+                  if (caption != null && caption.isNotEmpty)
+                    Text(
+                      caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    )
+                  else if (entry == null)
+                    const Text(
+                      '탭해서 착용샷 등록',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: AppColors.textTertiary, fontWeight: FontWeight.w600, fontSize: 13),
                     ),
-                  ),
                   Text(
                     dateLabel,
                     style: TextStyle(

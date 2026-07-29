@@ -111,8 +111,12 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.card),
                   child: Container(
-                    decoration: BoxDecoration(boxShadow: AppShadows.card),
-                    child: Image.network(_apiService.imageUrl(imagePath), height: 300, width: double.infinity, fit: BoxFit.cover),
+                    height: 300,
+                    width: double.infinity,
+                    decoration: BoxDecoration(boxShadow: AppShadows.card, color: AppColors.chipBackground),
+                    // BoxFit.cover는 세로로 긴 사진의 위아래를 잘라내 옷 일부만 보이게
+                    // 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다(빈 여백은 배경색).
+                    child: Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.contain),
                   ),
                 ),
                 const SizedBox(height: 28),

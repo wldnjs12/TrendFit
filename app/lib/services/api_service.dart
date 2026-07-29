@@ -71,6 +71,8 @@ class ApiService {
         refreshToken: body['refreshToken'],
         email: body['email'],
         nickname: body['nickname'],
+        // 토큰 재발급 응답에는 onboardingCompleted가 없다 — 세션에 이미 있는 값을 유지한다.
+        onboardingCompleted: AppSession.onboardingCompleted,
       );
       return true;
     } catch (_) {

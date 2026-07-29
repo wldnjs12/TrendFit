@@ -26,6 +26,11 @@ public class NaverShoppingClient {
 
     private static final String ENDPOINT = "https://openapi.naver.com/v1/search/shop.json";
 
+    /** 응답이 중간에 잘려 들어와 파싱이 깨지는 간헐적 네트워크 문제(운영 로그로 확인됨)를
+     * 완화하기 위해 실패 시 한 번만 재시도한다 — 매번 재현되는 데이터 문제가 아니라
+     * 일시적 truncation이라 재시도만으로 대부분 해결된다. */
+    private static final int MAX_ATTEMPTS = 2;
+
     private final NaverShoppingProperties properties;
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
@@ -35,24 +40,34 @@ public class NaverShoppingClient {
                 || properties.getClientId() == null || properties.getClientId().isBlank()) {
             return Optional.empty();
         }
-        try {
-            String url = ENDPOINT + "?display=1&sort=sim&query="
-                    + URLEncoder.encode(keyword, StandardCharsets.UTF_8);
-
-            String body = restClient.get()
-                    .uri(URI.create(url))
-                    .header("X-Naver-Client-Id", properties.getClientId())
-                    .header("X-Naver-Client-Secret", properties.getClientSecret())
-                    .retrieve()
-                    .body(String.class);
-
-            NaverShoppingResponse parsed = objectMapper.readValue(body, NaverShoppingResponse.class);
-            return parsed.items().stream().findFirst().map(item -> new NaverProductView(
-                    stripTags(item.title()), item.link(), item.image(), item.lprice(), item.mallName()));
-        } catch (Exception e) {
-            log.warn("[NaverShoppingClient] '{}' 검색 실패: {}", keyword, e.getMessage());
-            return Optional.empty();
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return Optional.of(fetch(keyword));
+            } catch (Exception e) {
+                lastError = e;
+            }
         }
+        log.warn("[NaverShoppingClient] '{}' 검색 실패({}회 시도): {}", keyword, MAX_ATTEMPTS, lastError.getMessage());
+        return Optional.empty();
+    }
+
+    private NaverProductView fetch(String keyword) throws Exception {
+        String url = ENDPOINT + "?display=1&sort=sim&query="
+                + URLEncoder.encode(keyword, StandardCharsets.UTF_8);
+
+        String body = restClient.get()
+                .uri(URI.create(url))
+                .header("X-Naver-Client-Id", properties.getClientId())
+                .header("X-Naver-Client-Secret", properties.getClientSecret())
+                .retrieve()
+                .body(String.class);
+
+        NaverShoppingResponse parsed = objectMapper.readValue(body, NaverShoppingResponse.class);
+        return parsed.items().stream().findFirst()
+                .map(item -> new NaverProductView(
+                        stripTags(item.title()), item.link(), item.image(), item.lprice(), item.mallName()))
+                .orElseThrow(() -> new IllegalStateException("검색 결과 없음"));
     }
 
     private String stripTags(String html) {
