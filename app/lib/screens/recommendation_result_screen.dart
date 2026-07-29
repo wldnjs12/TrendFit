@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
@@ -224,6 +225,12 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
     );
   }
 
+  Future<void> _openLink(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Widget _buildPlusOneCard() {
     final plusOne = result.plusOne!;
     return DecoratedBox(
@@ -235,10 +242,41 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
           children: [
             const Text('RECOMMEND · +1 ITEM', style: TextStyle(color: AppColors.white, fontSize: 14, letterSpacing: 1.6)),
             const SizedBox(height: 12),
+            if (plusOne.productImageUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                child: Image.network(
+                  plusOne.productImageUrl!,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Text(plusOne.itemName, style: const TextStyle(color: AppColors.white, fontSize: 22, fontWeight: FontWeight.bold)),
             if (plusOne.reason != null) ...[
               const SizedBox(height: 8),
               Text(plusOne.reason!, style: AppTextStyles.bodyOnDark),
+            ],
+            if (plusOne.productUrl != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _openLink(plusOne.productUrl!),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.white,
+                    side: const BorderSide(color: AppColors.white),
+                  ),
+                  child: Text(
+                    plusOne.price != null
+                        ? '${plusOne.price}원 · ${plusOne.mallName ?? "쇼핑몰"}에서 구매하기'
+                        : '${plusOne.mallName ?? "쇼핑몰"}에서 구매하기',
+                  ),
+                ),
+              ),
             ],
           ],
         ),

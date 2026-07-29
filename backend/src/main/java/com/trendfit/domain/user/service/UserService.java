@@ -6,10 +6,15 @@ import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
 import com.trendfit.domain.user.repository.UserPreferenceRepository;
 import com.trendfit.domain.user.repository.UserRepository;
+import com.trendfit.global.storage.ImageStorage;
+import com.trendfit.global.storage.ImageUrls;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +29,7 @@ public class UserService implements UserPreferencePort {
 
     private final UserRepository userRepository;
     private final UserPreferenceRepository userPreferenceRepository;
+    private final ImageStorage imageStorage;
 
     @Transactional
     public UserPreference upsertPreference(Long userId, List<String> styleTags, String bodyInfo) {
@@ -52,6 +58,20 @@ public class UserService implements UserPreferencePort {
     public User getMe(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    }
+
+    /** 프로필 화면에서 사진을 등록/교체한다. 옷장 등록과 달리 Vision 분석 대상이 아니라 그대로 저장만 한다. */
+    @Transactional
+    public String updateProfileImage(Long userId, MultipartFile image) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        try {
+            String key = imageStorage.save(image.getBytes(), image.getOriginalFilename());
+            user.updateProfileImage(key);
+            return ImageUrls.toUrl(key);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**

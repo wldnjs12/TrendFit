@@ -5,6 +5,7 @@ import '../config/app_session.dart';
 import '../models/clothing_item.dart';
 import '../models/recommendation_history.dart';
 import '../models/recommendation_result.dart';
+import '../models/trend_article.dart';
 import '../models/user_me.dart';
 import '../models/user_preference.dart';
 
@@ -94,6 +95,27 @@ class ApiService {
       throw _apiError(res);
     }
     return UserMe.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+  }
+
+  /// 회원관리 — 프로필 사진 등록/교체. (/api/users/me/profile-image, JWT 인증 필요)
+  Future<String> uploadProfileImage(XFile image) async {
+    Future<http.Response> send() async {
+      final uri = Uri.parse('$baseUrl/api/users/me/profile-image');
+      final request = http.MultipartRequest('POST', uri);
+      final token = AppSession.accessToken;
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      final bytes = await image.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: image.name));
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    }
+
+    final res = await _withAuthRetry(send);
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
+    final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    return body['profileImageUrl'] as String;
   }
 
   /// 회원관리 — 회원 탈퇴. (/api/users/me DELETE, JWT 인증 필요)
@@ -197,6 +219,38 @@ class ApiService {
     }
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     return body['wornPhotoUrl'] as String;
+  }
+
+  /// 캘린더의 빈 날짜를 눌러 착용샷만 바로 등록한다(AI 추천 없이 새 이력 생성, route 2).
+  /// [forDate]는 사용자가 캘린더에서 고른 날짜 — "내일/수요일" 같은 해석이 필요 없다.
+  Future<RecommendationHistoryItem> createWornPhotoEntry(int userId, DateTime forDate, XFile image) async {
+    Future<http.Response> send() async {
+      final dateStr = forDate.toIso8601String().substring(0, 10);
+      final uri = Uri.parse('$baseUrl/api/recommendations/worn-photo?userId=$userId&forDate=$dateStr');
+      final request = http.MultipartRequest('POST', uri);
+      final token = AppSession.accessToken;
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      final bytes = await image.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: image.name));
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    }
+
+    final res = await _withAuthRetry(send);
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
+    return RecommendationHistoryItem.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+  }
+
+  /// 홈 화면 "트렌드 리포트" 갤러리.
+  Future<List<TrendArticle>> fetchTrendReport() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/trends/report'));
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
+    final List<dynamic> body = jsonDecode(utf8.decode(res.bodyBytes));
+    return body.map((e) => TrendArticle.fromJson(e)).toList();
   }
 
   /// 캘린더(위클리 아카이브). [weekStart]를 생략하면 서버가 이번 주 월요일부터 조회한다.

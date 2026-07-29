@@ -14,6 +14,8 @@ import com.trendfit.domain.recommendation.repository.RecommendationLogRepository
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
+import com.trendfit.global.shopping.NaverProductView;
+import com.trendfit.global.shopping.NaverShoppingClient;
 import com.trendfit.global.storage.ImageStorage;
 import com.trendfit.global.storage.ImageUrls;
 import com.trendfit.global.weather.WeatherClient;
@@ -65,6 +67,7 @@ public class RecommendationService {
     private final RecommendationLogRepository recommendationLogRepository;
     private final ObjectMapper objectMapper;
     private final ImageStorage imageStorage;
+    private final NaverShoppingClient naverShoppingClient;
 
     @Transactional
     public RecommendationResponse requestRecommendation(Long userId, String requestText, Double lat, Double lon) {
@@ -95,9 +98,12 @@ public class RecommendationService {
                 .filter(Objects::nonNull)
                 .toList();
 
+        LocalDate forDate = KoreanDatePhraseParser.resolve(requestText, LocalDate.now(KST));
+
         RecommendationLog log = recommendationLogRepository.save(new RecommendationLog(
                 userId,
                 requestText,
+                forDate,
                 writeJson(result.selectedItemIds()),
                 result.plusOne() == null ? null : writeJson(result.plusOne())));
 
@@ -108,18 +114,29 @@ public class RecommendationService {
                                 item.id(), item.category(), ImageUrls.toUrl(item.croppedImagePath())))
                         .toList(),
                 result.stylingNote(),
-                result.plusOne() == null ? null : new PlusOneResponse(
-                        result.plusOne().itemName(), result.plusOne().reason(), result.plusOne().category()));
+                result.plusOne() == null ? null : buildPlusOneResponse(result.plusOne()));
+    }
+
+    /** '+1 아이템' 추천명으로 네이버쇼핑에서 실제 구매 가능한 상품을 찾아 함께 내려준다(A6). */
+    private PlusOneResponse buildPlusOneResponse(PlusOneSuggestion plusOne) {
+        Optional<NaverProductView> product = naverShoppingClient.search(plusOne.itemName());
+        return new PlusOneResponse(
+                plusOne.itemName(),
+                plusOne.reason(),
+                plusOne.category(),
+                product.map(NaverProductView::link).orElse(null),
+                product.map(NaverProductView::imageUrl).orElse(null),
+                product.map(NaverProductView::mallName).orElse(null),
+                product.map(NaverProductView::lowPrice).orElse(null));
     }
 
     /** 캘린더(위클리 아카이브) — weekStart(월요일)부터 7일치 추천 이력을 날짜순으로 반환한다. */
     @Transactional(readOnly = true)
     public List<RecommendationHistoryItemResponse> getWeeklyHistory(Long userId, LocalDate weekStart) {
-        LocalDateTime start = weekStart.atStartOfDay();
-        LocalDateTime end = weekStart.plusDays(7).atStartOfDay();
+        LocalDate end = weekStart.plusDays(7);
 
         List<RecommendationLog> logs = recommendationLogRepository
-                .findByUserIdAndConfirmedTrueAndCreatedAtBetweenOrderByCreatedAtAsc(userId, start, end);
+                .findByUserIdAndConfirmedTrueAndForDateBetweenOrderByForDateAsc(userId, weekStart, end);
         if (logs.isEmpty()) {
             return List.of();
         }
@@ -130,7 +147,7 @@ public class RecommendationService {
         return logs.stream()
                 .map(log -> new RecommendationHistoryItemResponse(
                         log.getId(),
-                        log.getCreatedAt().toLocalDate(),
+                        log.getForDate(),
                         readItemIds(log.getResultItemIdsJson()).stream()
                                 .map(closetById::get)
                                 .filter(Objects::nonNull)
@@ -140,6 +157,24 @@ public class RecommendationService {
                         log.getRequestText(),
                         ImageUrls.toUrl(log.getWornPhotoPath())))
                 .toList();
+    }
+
+    /**
+     * 캘린더에서 기록 없는 날을 눌러 착용샷만 바로 등록하는 경로 — AI 추천 없이 즉시 확정된
+     * 이력을 만든다(route 2). "오늘의 코디로 결정하기"로 저장되는 route 1과 달리 승인 절차가
+     * 없다 — 사용자가 직접 날짜를 골라 사진을 올리는 행위 자체가 확정 의사이기 때문이다.
+     */
+    @Transactional
+    public RecommendationHistoryItemResponse createWornPhotoEntry(Long userId, LocalDate forDate, MultipartFile image) {
+        try {
+            String key = imageStorage.save(image.getBytes(), image.getOriginalFilename());
+            RecommendationLog log = recommendationLogRepository.save(
+                    RecommendationLog.forWornPhotoOnly(userId, forDate, key));
+            return new RecommendationHistoryItemResponse(
+                    log.getId(), log.getForDate(), List.of(), null, ImageUrls.toUrl(key));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /** 결과 화면에서 "오늘의 코디로 결정하기"를 눌렀을 때 호출 — 이때부터 캘린더에 노출된다. */

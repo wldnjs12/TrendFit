@@ -54,6 +54,11 @@ trendfit:
     # (A3, 2026-07-27 결정). WeatherClient가 쿼리스트링을 직접 조립하므로 "디코딩" 키를 넣으면
     # 이중 인코딩으로 401이 난다.
     api-key: ${WEATHER_API_KEY:}
+  naver-shopping:
+    # 네이버 개발자센터(developers.naver.com) Application 등록 > "검색" API 사용 설정으로 발급
+    # (A6, 2026-07-29 결정). 미설정이어도 '+1 아이템'은 상품 링크 없이 정상 동작한다.
+    client-id: ${NAVER_SHOPPING_CLIENT_ID:}
+    client-secret: ${NAVER_SHOPPING_CLIENT_SECRET:}
   trend-batch:
     cron: "0 0 3 * * *"   # 매일 새벽 3시 트렌드 수집 배치 실행
     sources:               # service-policy.md §3 확정 소스 (2026-07-27)

@@ -7,10 +7,13 @@ import '../config/app_theme.dart';
 import '../models/recommendation_history.dart';
 import '../services/api_service.dart';
 import '../widgets/trendfit_mark.dart';
+import '../widgets/weekly_report_sheet.dart';
 
 /// 캘린더(위클리 아카이브) — 4번째 탭. (Figma "위클리 아카이브" 프레임, 2026-07-28 결정으로 MVP 승격)
 /// `RecommendationLog` 이력을 주 단위(월~일)로 묶어 그날 추천받은 코디를 돌아본다.
-/// 공유/스토리 내보내기는 PRD상 "커뮤니티/공유 = 제외" 항목이라 UI에서 뺐다.
+/// 한 주(7일)가 모두 채워지면 위클리 리포트 이미지를 만들어 저장할 수 있다 — 인스타그램 API
+/// 직접 연동(로그인 필요, PRD상 이용약관 리스크로 스트레치)과는 무관한 로컬 이미지 합성/저장
+/// 기능이라 "커뮤니티/공유 제외" 범위에 해당하지 않는다(PRD.md §4.3, 2026-07-29 범위 추가).
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -28,6 +31,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// 업로드 직후 새로고침 없이 바로 반영하기 위한 로컬 오버라이드 (logId -> 착용샷 URL).
   final Map<int, String> _wornPhotoOverrides = {};
   int? _uploadingLogId;
+
+  /// 기록 없는 요일 카드를 탭해 새 착용샷 이력을 만드는 동안(route 2)의 로딩 상태.
+  int? _creatingWeekday;
 
   static const _dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -65,6 +71,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('착용샷 등록에 실패했어요: $e')));
     } finally {
       if (mounted) setState(() => _uploadingLogId = null);
+    }
+  }
+
+  /// 기록 없는 요일 카드를 탭했을 때 — AI 추천을 거치지 않고 착용샷만으로 바로 새 이력을 만든다
+  /// (route 2). 코디 저장(route 1)과 달리 확정 절차 없이 등록 즉시 캘린더에 반영된다.
+  Future<void> _createWornPhotoForDay(int weekday) async {
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image == null) return;
+    final date = _weekStart.add(Duration(days: weekday - 1));
+    setState(() => _creatingWeekday = weekday);
+    try {
+      await _apiService.createWornPhotoEntry(AppSession.userId!, date, image);
+      if (!mounted) return;
+      setState(_load);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('착용샷 등록에 실패했어요: $e')));
+    } finally {
+      if (mounted) setState(() => _creatingWeekday = null);
     }
   }
 
@@ -170,8 +195,57 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SizedBox(height: 12),
           ],
           _staggered(_dayCard(7, byDay[7], fullWidth: true, height: 260), 6),
+          const SizedBox(height: 20),
+          _buildReportCta(byDay),
         ],
       ),
+    );
+  }
+
+  /// 7일이 모두 채워지면 위클리 리포트 이미지를 만들 수 있다는 걸 알려주고 진입점을 보여준다.
+  Widget _buildReportCta(Map<int, RecommendationHistoryItem> byDay) {
+    final filled = byDay.length;
+    final complete = filled >= 7;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: complete ? AppColors.black : AppColors.chipBackground,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.auto_awesome_mosaic_outlined, size: 20, color: complete ? AppColors.white : AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                complete ? '이번 주 기록이 모두 채워졌어요!' : '$filled/7일 채워지면 위클리 리포트를 만들 수 있어요',
+                style: TextStyle(
+                  color: complete ? AppColors.white : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            if (complete)
+              TextButton(
+                onPressed: () => _openWeeklyReportSheet(byDay),
+                style: TextButton.styleFrom(foregroundColor: AppColors.white),
+                child: const Text('만들기'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openWeeklyReportSheet(Map<int, RecommendationHistoryItem> byDay) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card))),
+      builder: (context) => WeeklyReportSheet(apiService: _apiService, weekStart: _weekStart, byDay: byDay),
     );
   }
 
@@ -189,24 +263,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final wornUrl = entry == null ? null : (_wornPhotoOverrides[entry.logId] ?? entry.wornPhotoUrl);
     final caption = entry?.requestText;
     final uploading = entry != null && _uploadingLogId == entry.logId;
+    final creating = entry == null && _creatingWeekday == weekday;
 
-    return Container(
-      height: height,
-      width: fullWidth ? double.infinity : null,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: entry == null ? null : AppShadows.soft),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
+    final cardBody = Stack(
+        fit: StackFit.expand,
+        children: [
             Container(color: AppColors.chipBackground),
             if (wornUrl != null)
               Image.network(_apiService.imageUrl(wornUrl), fit: BoxFit.cover)
             else if (aiImagePath != null)
               Image.network(_apiService.imageUrl(aiImagePath), fit: BoxFit.cover)
             else
-              // 기록 없는 요일 — 자극적인 스톡사진 대신 은은한 아이콘만 두어 깔끔하게 비워둔다.
-              const Center(child: Icon(Icons.checkroom_outlined, color: AppColors.textPlaceholder, size: 28)),
+              // 기록 없는 요일 — 탭하면 바로 착용샷을 등록할 수 있다는 걸 아이콘으로 알려준다.
+              Center(
+                child: creating
+                    ? const SizedBox(
+                        width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textPlaceholder))
+                    : const Icon(Icons.add_a_photo_outlined, color: AppColors.textPlaceholder, size: 26),
+              ),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -264,7 +338,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    caption != null && caption.isNotEmpty ? caption : '기록 없음',
+                    caption != null && caption.isNotEmpty ? caption : (entry == null ? '탭해서 착용샷 등록' : '기록 없음'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -283,8 +357,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ],
               ),
             ),
-          ],
-        ),
+        ],
+    );
+
+    return Container(
+      height: height,
+      width: fullWidth ? double.infinity : null,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: entry == null ? null : AppShadows.soft),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: entry == null
+            ? InkWell(
+                onTap: creating ? null : () => _createWornPhotoForDay(weekday),
+                child: cardBody,
+              )
+            : cardBody,
       ),
     );
   }

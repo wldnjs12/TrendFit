@@ -7,6 +7,9 @@ import com.trendfit.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 /**
  * 온보딩(취향 선택) + 회원관리(본인 계정 조회/탈퇴) API.
@@ -35,6 +38,14 @@ public class UserController {
     @GetMapping("/me")
     public UserMeResponse me(@AuthenticationPrincipal Long userId) {
         return UserMeResponse.from(userService.getMe(userId));
+    }
+
+    /** 프로필 사진 등록/교체. */
+    @PostMapping("/me/profile-image")
+    public Map<String, String> updateProfileImage(@AuthenticationPrincipal Long userId,
+                                                    @RequestPart("image") MultipartFile image) {
+        String url = userService.updateProfileImage(userId, image);
+        return Map.of("profileImageUrl", url);
     }
 
     /** 회원 탈퇴. */

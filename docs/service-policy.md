@@ -90,11 +90,9 @@ TrendFit의 정책을 회원 / 옷장 / 트렌드 수집 / 추천 / 구매 연�
 
 | 항목 | 정책 |
 |---|---|
-| '+1 아이템' 표시 | 추천 결과에 쇼핑 링크 카드로 함께 제안 |
-| 제휴 방식 | 제휴 링크 경유 구매 시 수수료 수취(장기 수익 모델) |
-| 자동 등록 | 구매 확정 콜백 수신 시 `ClosetCommandPort`를 통해 `ClothingItem`(source=AUTO_PURCHASE) 자동 생성 |
-
-- 🔸 제휴 대상 쇼핑몰/제휴 프로그램 미정 → [open-decisions.md](open-decisions.md)
+| '+1 아이템' 표시 | 추천 결과에 네이버쇼핑 검색 API로 조회한 실제 상품(이미지/가격/구매링크) 카드로 함께 제안 (A6, 2026-07-29 결정) |
+| 제휴 방식 | 네이버쇼핑 검색 API는 무료 공개 API라 수수료 없음 — 수익 모델이 아닌 "실제 구매 가능한 상품 노출"이 목적 |
+| 자동 등록 | 🔸 미정 — 네이버쇼핑 API는 구매 확정 콜백을 제공하지 않아 `ClosetCommandPort`를 통한 `ClothingItem`(source=AUTO_PURCHASE) 자동 생성 방식은 별도 결정 필요 → [open-decisions.md](open-decisions.md) A6 |
 
 ---
 

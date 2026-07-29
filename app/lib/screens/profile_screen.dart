@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
+import '../models/user_me.dart';
 import '../models/user_preference.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -25,20 +27,54 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ApiService _apiService = ApiService(baseUrl: AppConfig.apiBaseUrl);
   final AuthService _authService = AuthService();
+  final ImagePicker _picker = ImagePicker();
   late Future<UserPreference> _preferenceFuture;
   bool _processingAccountAction = false;
   String _locationSubtitle = '위치 확인 중...';
   bool _locationTappable = false;
+
+  UserMe? _me;
+  bool _uploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadLocation();
+    _loadMe();
   }
 
   void _load() {
     _preferenceFuture = _apiService.fetchOnboarding(AppSession.userId!);
+  }
+
+  Future<void> _loadMe() async {
+    try {
+      final me = await _apiService.fetchMe();
+      if (mounted) setState(() => _me = me);
+    } catch (_) {
+      // 프로필 사진은 부가 정보라 조회 실패해도 화면 전체를 막지 않는다.
+    }
+  }
+
+  Future<void> _pickProfileImage() async {
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image == null) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final url = await _apiService.uploadProfileImage(image);
+      if (!mounted) return;
+      setState(() {
+        _me = _me == null
+            ? null
+            : UserMe(id: _me!.id, email: _me!.email, nickname: _me!.nickname, profileImageUrl: url, createdAt: _me!.createdAt);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('프로필 사진 등록에 실패했어요: $e')));
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   /// 실제 기기 위치 권한 상태를 그대로 보여준다 — 예전엔 "서울시 강남구"가 항상
@@ -232,20 +268,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildIdentity() {
     final nickname = AppSession.nickname ?? 'TRENDFIT USER';
     final email = AppSession.email ?? '';
+    final profileImageUrl = _me?.profileImageUrl;
     return Row(
       children: [
-        ClipOval(
-          child: Container(
-            width: 64,
-            height: 64,
-            color: AppColors.chipBackground,
-            // 기본 프로필 아바타(임시 예시 이미지). 실제 프로필 사진 업로드 기능은 아직 없다.
-            child: Image.network(
-              'https://images.unsplash.com/photo-1750319157047-8d6523f9c53a?w=400&q=80&auto=format&fit=crop',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.person, color: AppColors.textTertiary, size: 32),
-            ),
+        InkWell(
+          onTap: _uploadingPhoto ? null : _pickProfileImage,
+          customBorder: const CircleBorder(),
+          child: Stack(
+            children: [
+              ClipOval(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  color: AppColors.chipBackground,
+                  child: profileImageUrl != null
+                      ? Image.network(
+                          _apiService.imageUrl(profileImageUrl),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person, color: AppColors.textTertiary, size: 32),
+                        )
+                      : const Icon(Icons.person, color: AppColors.textTertiary, size: 32),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.white, width: 2),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _uploadingPhoto
+                        ? const SizedBox(
+                            width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.white))
+                        : const Icon(Icons.add_a_photo_outlined, size: 10, color: AppColors.white),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 16),

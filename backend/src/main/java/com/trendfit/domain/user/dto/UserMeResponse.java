@@ -1,6 +1,7 @@
 package com.trendfit.domain.user.dto;
 
 import com.trendfit.domain.user.entity.User;
+import com.trendfit.global.storage.ImageUrls;
 
 import java.time.LocalDateTime;
 
@@ -9,9 +10,15 @@ public record UserMeResponse(
         Long id,
         String email,
         String nickname,
+        String profileImageUrl,
         LocalDateTime createdAt
 ) {
     public static UserMeResponse from(User user) {
-        return new UserMeResponse(user.getId(), user.getEmail(), user.getNickname(), user.getCreatedAt());
+        return new UserMeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getNickname(),
+                ImageUrls.toUrl(user.getProfileImagePath()),
+                user.getCreatedAt());
     }
 }

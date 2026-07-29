@@ -42,6 +42,10 @@ public class User {
     @Column(length = 512)
     private String refreshToken;
 
+    /** 사용자가 직접 등록한 프로필 사진. ImageStorage 저장 키(로컬 경로 또는 R2 오브젝트 키)다. */
+    @Column(length = 500)
+    private String profileImagePath;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -61,6 +65,11 @@ public class User {
     /** 로그인 시마다 최신 리프레시 토큰으로 교체한다. 로그아웃 시 null을 전달해 무효화한다. */
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
+    }
+
+    /** 프로필 화면에서 사진을 등록/교체할 때 호출한다. */
+    public void updateProfileImage(String profileImagePath) {
+        this.profileImagePath = profileImagePath;
     }
 
     public enum AuthProvider { GOOGLE }

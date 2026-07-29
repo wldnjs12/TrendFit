@@ -70,6 +70,18 @@ public class RecommendationController {
         return Map.of("wornPhotoUrl", url);
     }
 
+    /**
+     * 캘린더에서 기록 없는 날을 눌러 착용샷만 바로 등록한다(route 2) — AI 추천을 거치지 않고
+     * 새 이력을 만든다는 점에서 위 {id}/worn-photo(기존 이력에 첨부)와 다르다.
+     */
+    @PostMapping("/worn-photo")
+    public RecommendationHistoryItemResponse createWornPhotoEntry(
+            @RequestParam("userId") Long userId,
+            @RequestParam("forDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate forDate,
+            @RequestPart("image") MultipartFile image) {
+        return recommendationService.createWornPhotoEntry(userId, forDate, image);
+    }
+
     @PostMapping("/{id}/purchase-callback")
     public void handlePurchaseCallback(@PathVariable Long id) {
         // A6(구매 연동 제휴처)가 아직 미정이라 6주차로 미룬다. ClosetCommandPort는 이미 준비돼 있다.

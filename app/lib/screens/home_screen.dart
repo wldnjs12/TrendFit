@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../models/recommendation_result.dart';
+import '../models/trend_article.dart';
 import '../services/api_service.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'calendar_screen.dart';
@@ -33,12 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Position? _position;
   _LocationStatus _locationStatus = _LocationStatus.loading;
 
+  late Future<List<TrendArticle>> _trendReportFuture;
+
   @override
   void initState() {
     super.initState();
     // 검색을 눌러야만 위치를 요청하던 걸 화면 진입 시 바로 시도하도록 변경 —
     // 사용자가 "위치 자동설정이 안 된다"고 느끼는 원인이었다.
     _initLocation();
+    _trendReportFuture = _apiService.fetchTrendReport();
   }
 
   @override
@@ -142,6 +147,103 @@ class _HomeScreenState extends State<HomeScreen> {
                   .animate()
                   .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 2)
                   .slideY(begin: 0.05, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
+              const SizedBox(height: 40),
+              _buildTrendReport()
+                  .animate()
+                  .fadeIn(duration: AppMotion.base, delay: AppMotion.stagger * 3)
+                  .slideY(begin: 0.05, end: 0, duration: AppMotion.base, curve: AppMotion.enter),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openLink(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  /// 홈을 좀 더 다채롭게 — 실제 트렌드 매체(보그 코리아·W코리아·하입비스트 코리아)에서 긁어온
+  /// 사진들을 가로 갤러리로 보여준다. 탭하면 원문 기사로 이동한다.
+  Widget _buildTrendReport() {
+    return FutureBuilder<List<TrendArticle>>(
+      future: _trendReportFuture,
+      builder: (context, snapshot) {
+        final articles = snapshot.data ?? [];
+        if (snapshot.connectionState != ConnectionState.done || articles.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('TREND REPORT', style: AppTextStyles.trackedLabel.copyWith(letterSpacing: 2)),
+            const SizedBox(height: 4),
+            Text('오늘의 트렌드 리포트', style: AppTextStyles.headingBold),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 220,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: articles.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _trendCard(articles[index]),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _trendCard(TrendArticle article) {
+    return InkWell(
+      onTap: () => _openLink(article.link),
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.soft),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: AppColors.chipBackground),
+              Image.network(
+                article.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.65)],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(article.sourceName.toUpperCase(),
+                        style: const TextStyle(color: AppColors.white, fontSize: 10, letterSpacing: 1)),
+                    const SizedBox(height: 4),
+                    Text(
+                      article.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -358,17 +460,61 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(AppRadius.card)),
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('+1 아이템 제안', style: TextStyle(color: AppColors.white, fontSize: 14, letterSpacing: 1.4)),
-                  const SizedBox(height: 12),
-                  Text(result.plusOne!.itemName,
-                      style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  if (result.plusOne!.reason != null) ...[
-                    const SizedBox(height: 6),
-                    Text(result.plusOne!.reason!, style: AppTextStyles.bodyOnDark),
+                  if (result.plusOne!.productImageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                      child: Image.network(
+                        result.plusOne!.productImageUrl!,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                   ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('+1 아이템 제안', style: TextStyle(color: AppColors.white, fontSize: 14, letterSpacing: 1.4)),
+                        const SizedBox(height: 12),
+                        Text(result.plusOne!.itemName,
+                            style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        if (result.plusOne!.reason != null) ...[
+                          const SizedBox(height: 6),
+                          Text(result.plusOne!.reason!, style: AppTextStyles.bodyOnDark),
+                        ],
+                        if (result.plusOne!.productUrl != null) ...[
+                          const SizedBox(height: 14),
+                          InkWell(
+                            onTap: () => _openLink(result.plusOne!.productUrl!),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (result.plusOne!.price != null) ...[
+                                  Text('${result.plusOne!.price}원',
+                                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(
+                                  result.plusOne!.mallName != null
+                                      ? '${result.plusOne!.mallName}에서 보기'
+                                      : '구매하러 가기',
+                                  style: const TextStyle(color: AppColors.white, decoration: TextDecoration.underline, fontSize: 13),
+                                ),
+                                const SizedBox(width: 2),
+                                const Icon(Icons.arrow_outward, size: 14, color: AppColors.white),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
