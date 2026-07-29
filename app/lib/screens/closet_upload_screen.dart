@@ -29,7 +29,10 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
   bool _uploading = false;
 
   Future<void> _pickMore() async {
-    final images = await _picker.pickMultiImage();
+    // maxWidth/maxHeight로 원본 크기를 제한한다 — 웹에서는 imageQuality가 적용되지 않아
+    // 압축 없이 원본(휴대폰 사진은 수십MB까지도 감) 그대로 올라가면 서버의 multipart 크기
+    // 제한(10MB)에 걸려 브라우저에서 "Load failed"로만 보이는 네트워크 에러가 난다.
+    final images = await _picker.pickMultiImage(maxWidth: 1600, maxHeight: 1600);
     if (images.isEmpty) return;
     setState(() => _picked.addAll(images));
   }

@@ -59,7 +59,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   /// AI가 추천해준 코디 사진과 별개로, 그날 실제로 입은 모습을 직접 등록한다.
   Future<void> _uploadWornPhoto(RecommendationHistoryItem entry) async {
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    // 웹은 imageQuality를 지원하지 않아 maxWidth/maxHeight로 원본 크기를 제한한다 —
+    // 안 그러면 큰 사진이 서버의 multipart 크기 제한에 걸려 브라우저에 "Load failed"로만
+    // 보이는 네트워크 에러가 난다.
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1600, maxHeight: 1600);
     if (image == null) return;
     setState(() => _uploadingLogId = entry.logId);
     try {
@@ -77,7 +80,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// 기록 없는 요일 카드를 탭했을 때 — AI 추천을 거치지 않고 착용샷만으로 바로 새 이력을 만든다
   /// (route 2). 코디 저장(route 1)과 달리 확정 절차 없이 등록 즉시 캘린더에 반영된다.
   Future<void> _createWornPhotoForDay(int weekday) async {
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    // 웹은 imageQuality를 지원하지 않아 maxWidth/maxHeight로 원본 크기를 제한한다 —
+    // 안 그러면 큰 사진이 서버의 multipart 크기 제한에 걸려 브라우저에 "Load failed"로만
+    // 보이는 네트워크 에러가 난다.
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1600, maxHeight: 1600);
     if (image == null) return;
     final date = _weekStart.add(Duration(days: weekday - 1));
     setState(() => _creatingWeekday = weekday);

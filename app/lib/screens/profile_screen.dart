@@ -58,7 +58,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickProfileImage() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    // 웹은 imageQuality를 지원하지 않아 maxWidth/maxHeight로 원본 크기를 제한한다 —
+    // 안 그러면 큰 사진이 서버의 multipart 크기 제한에 걸려 브라우저에 "Load failed"로만
+    // 보이는 네트워크 에러가 난다. 아바타는 800px면 충분하다.
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 800, maxHeight: 800);
     if (image == null) return;
     setState(() => _uploadingPhoto = true);
     try {
