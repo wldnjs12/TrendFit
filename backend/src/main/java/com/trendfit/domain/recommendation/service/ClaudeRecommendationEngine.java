@@ -3,6 +3,7 @@ package com.trendfit.domain.recommendation.service;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
+import com.anthropic.models.messages.ThinkingConfigDisabled;
 import com.trendfit.domain.closet.port.ClosetItemView;
 import com.trendfit.domain.trend.port.TrendKeywordView;
 import com.trendfit.global.config.ClaudeProperties;
@@ -42,6 +43,10 @@ public class ClaudeRecommendationEngine {
         StructuredMessageCreateParams<RecommendationResult> params = MessageCreateParams.builder()
                 .model(claudeProperties.getModel())
                 .maxTokens(MAX_TOKENS)
+                // claude-sonnet-5는 thinking을 명시하지 않으면 기본값이 off가 아니라 adaptive로
+                // 켜진다. 주어진 옷장 목록 안에서 조합을 고르는 제한된 선택 작업이라 추론이 거의
+                // 필요 없는데도 매 요청 reasoning 토큰이 붙어 느려지는 주요 원인이었다.
+                .thinking(ThinkingConfigDisabled.builder().build())
                 .outputConfig(RecommendationResult.class)
                 .addUserMessage(buildPrompt(context))
                 .build();
@@ -97,6 +102,9 @@ public class ClaudeRecommendationEngine {
                 옷장에 없는 아이템으로 트렌드를 보완하면 좋겠다고 판단되면 plusOne으로 제안하고,
                 아니면 plusOne은 null로 두어라. plusOne.category는 TOP, BOTTOM, OUTER, DRESS,
                 SHOES, ACCESSORY 중 하나로 답하라.
+                plusOne.itemName은 실제 쇼핑몰 검색창에 그대로 넣을 짧은 상품 검색어여야 한다 —
+                브랜드명이나 "트렌디한", "감각적인" 같은 수식어 없이 "[색상] [핵심 아이템명]"
+                형태(예: "카멜 롱 트렌치코트", "화이트 스니커즈")로 5단어 이내로 작성하라.
                 """);
         return sb.toString();
     }

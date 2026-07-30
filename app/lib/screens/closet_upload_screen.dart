@@ -7,6 +7,8 @@ import '../config/app_config.dart';
 import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/step_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 
@@ -149,14 +151,15 @@ class _ClosetUploadScreenState extends State<ClosetUploadScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _uploading ? null : _complete,
-                  child: _uploading
-                      ? const SizedBox(
-                          height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                      : const Text('COMPLETE'),
+              PressableScale(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _uploading ? null : _complete,
+                    child: _uploading
+                        ? const AiLoadingIndicator(label: 'AI가 옷을 분석하는 중')
+                        : const Text('COMPLETE'),
+                  ),
                 ),
               ),
               if (_picked.isNotEmpty) ...[

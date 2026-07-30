@@ -5,6 +5,7 @@ import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../config/style_tags.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
 import '../widgets/step_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'main_tab_shell.dart';
@@ -145,10 +146,7 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(
-                          height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                      : const Text('NEXT'),
+                  child: _submitting ? const AiLoadingIndicator(dotSize: 5) : const Text('NEXT'),
                 ),
               ),
             ],

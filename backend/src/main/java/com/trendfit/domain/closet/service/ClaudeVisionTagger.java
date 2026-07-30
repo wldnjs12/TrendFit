@@ -7,6 +7,7 @@ import com.anthropic.models.messages.ImageBlockParam;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StructuredMessageCreateParams;
 import com.anthropic.models.messages.TextBlockParam;
+import com.anthropic.models.messages.ThinkingConfigDisabled;
 import com.trendfit.global.config.ClaudeProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class ClaudeVisionTagger {
         blocks.add(ContentBlockParam.ofText(TextBlockParam.builder().text(buildPrompt(images.size())).build()));
 
         for (MultipartFile image : images) {
-            byte[] bytes = image.getBytes();
+            byte[] bytes = ImageDownscaler.downscale(image.getBytes());
             Base64ImageSource source = Base64ImageSource.builder()
                     .data(Base64.getEncoder().encodeToString(bytes))
                     .mediaType(detectMediaType(bytes))
@@ -63,6 +64,10 @@ public class ClaudeVisionTagger {
         StructuredMessageCreateParams<ClothingTagExtractionResult> params = MessageCreateParams.builder()
                 .model(claudeProperties.getModel())
                 .maxTokens(MAX_TOKENS)
+                // claude-sonnet-5는 thinking을 명시하지 않으면 기본값이 off가 아니라 adaptive로 켜진다.
+                // 카테고리/색상/패턴 추출은 추론이 필요 없는 단순 작업이라 매 호출 reasoning 토큰만
+                // 낭비되며 등록이 느려지는 주요 원인이었다 — 명시적으로 꺼서 지연시간을 줄인다.
+                .thinking(ThinkingConfigDisabled.builder().build())
                 .outputConfig(ClothingTagExtractionResult.class)
                 .addUserMessageOfBlockParams(blocks)
                 .build();

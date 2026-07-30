@@ -6,6 +6,8 @@ import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../models/recommendation_result.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/trendfit_top_bar.dart';
 
 /// AI 추천 결과 상세. (Figma "AI 추천: 내 옷장 풀 코디" / "AI 추천: 스타일 업그레이드")
@@ -101,14 +103,13 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                 child: Text('READY TO WEAR?', style: AppTextStyles.trackedLabel.copyWith(letterSpacing: 3.2)),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _confirming ? null : _confirmAndClose,
-                  child: _confirming
-                      ? const SizedBox(
-                          height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                      : const Text('오늘의 코디로 결정하기'),
+              PressableScale(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _confirming ? null : _confirmAndClose,
+                    child: _confirming ? const AiLoadingIndicator(dotSize: 5) : const Text('오늘의 코디로 결정하기'),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

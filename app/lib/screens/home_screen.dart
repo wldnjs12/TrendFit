@@ -8,6 +8,8 @@ import '../config/app_theme.dart';
 import '../models/recommendation_result.dart';
 import '../models/trend_article.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'calendar_screen.dart';
 import 'recommendation_result_screen.dart';
@@ -251,47 +253,61 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 홈의 시각적 앵커 — 히어로 사진보다 이 입력창이 먼저 눈에 들어와야 한다는 판단으로
+  // 헤드라인 + 넉넉한 패딩 + 은은한 depth를 줘 존재감을 키웠다(모노톤 브랜드는 유지).
   Widget _buildSearchBar() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: const Border.fromBorderSide(BorderSide(color: AppColors.black)),
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Row(
-          children: [
-            const SizedBox(width: 8),
-            const Icon(Icons.auto_awesome, size: 20, color: AppColors.textSecondary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  hintText: '흰 치마인데 뭐랑 매치하지?',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('AI 스타일리스트', style: AppTextStyles.trackedLabel.copyWith(letterSpacing: 2)),
+        const SizedBox(height: 6),
+        Text('오늘 뭐 입지?', style: AppTextStyles.koreanHeadline),
+        const SizedBox(height: 14),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: const Border.fromBorderSide(BorderSide(color: AppColors.black, width: 1.2)),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: AppShadows.card,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                const SizedBox(width: 8),
+                const Icon(Icons.auto_awesome, size: 22, color: AppColors.textPrimary)
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .scaleXY(end: 1.18, duration: const Duration(milliseconds: 900), curve: Curves.easeInOut),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: '흰 치마인데 뭐랑 매치하지?',
+                    ),
+                    onSubmitted: (_) => _requestRecommendation(),
+                  ),
                 ),
-                onSubmitted: (_) => _requestRecommendation(),
-              ),
+                PressableScale(
+                  child: SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _requestRecommendation,
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24)),
+                      child: _loading
+                          ? const AiLoadingIndicator(dotSize: 5)
+                          : const Text('SEARCH'),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(
-              height: 40,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _requestRecommendation,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24)),
-                child: _loading
-                    ? const SizedBox(
-                        height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                    : const Text('SEARCH'),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -325,8 +341,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final result = _result;
     if (result == null) {
-      return AspectRatio(
-        aspectRatio: 4 / 5,
+      // 결과가 나오기 전엔 검색창이 화면의 주인공이어야 하므로, 예전 4:5 풀사이즈 히어로 대신
+      // 낮은 슬림 배너로 축소했다(콘텐츠가 생기면 아래 분기에서 다시 큰 히어로를 보여준다).
+      return SizedBox(
+        height: 152,
         child: Container(
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.card),
           child: ClipRRect(
@@ -350,16 +368,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      '위에 오늘 입을 옷을 물어보면\n실제 옷장 사진으로 코디를 추천해드려요.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w500),
-                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: _loading
+                        ? const AiLoadingIndicator(label: 'AI가 옷장을 살펴보는 중')
+                        : const Text(
+                            '위에 오늘 입을 옷을 물어보면\n실제 옷장 사진으로 코디를 추천해드려요.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w500),
+                          ),
                   ),
                 ),
+                if (_loading) const ShimmerOverlay(),
               ],
             ),
           ),

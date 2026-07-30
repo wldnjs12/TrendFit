@@ -8,6 +8,7 @@ import '../config/app_theme.dart';
 import '../models/recommendation_history.dart';
 import '../services/api_service.dart';
 import '../utils/image_saver.dart';
+import 'ai_loading_indicator.dart';
 import 'outfit_mosaic.dart';
 
 /// 한 주(7일)가 모두 채워졌을 때, 인스타그램 스토리(9:16)에 올리기 좋은 합성 이미지를 만들어
@@ -135,10 +136,7 @@ class _WeeklyReportSheetState extends State<WeeklyReportSheet> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: (_imagesReady && !_saving) ? _save : null,
-                child: _saving
-                    ? const SizedBox(
-                        height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                    : const Text('이미지 저장하기'),
+                child: _saving ? const AiLoadingIndicator(dotSize: 5) : const Text('이미지 저장하기'),
               ),
             ),
           ],

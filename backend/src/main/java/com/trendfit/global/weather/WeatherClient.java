@@ -2,12 +2,14 @@ package com.trendfit.global.weather;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trendfit.global.config.TimeoutRestClientFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -34,7 +36,7 @@ public class WeatherClient {
 
     private final WeatherProperties weatherProperties;
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = TimeoutRestClientFactory.create(Duration.ofSeconds(3), Duration.ofSeconds(5));
 
     public Optional<WeatherSummary> fetchTodayWeather(double lat, double lon) {
         try {

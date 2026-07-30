@@ -4,6 +4,8 @@ import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/trendfit_top_bar.dart';
 
 /// 방금 등록한(미확정) 옷들의 핏/재질을 순서대로 확정한다. (PRD 4.2 F2)
@@ -101,7 +103,10 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
               opacity: animation,
               child: SlideTransition(
                 position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(animation),
-                child: child,
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.97, end: 1.0).animate(CurvedAnimation(parent: animation, curve: AppMotion.enter)),
+                  child: child,
+                ),
               ),
             ),
             child: Column(
@@ -138,14 +143,13 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
                   onSelected: (label) => setState(() => _selectedMaterial = label),
                 ),
                 const SizedBox(height: 36),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _canConfirm ? _confirmItem : null,
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                        : const Text('CONFIRM'),
+                PressableScale(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _canConfirm ? _confirmItem : null,
+                      child: _submitting ? const AiLoadingIndicator(dotSize: 5) : const Text('CONFIRM'),
+                    ),
                   ),
                 ),
               ],

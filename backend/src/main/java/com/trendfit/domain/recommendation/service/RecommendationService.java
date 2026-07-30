@@ -11,6 +11,7 @@ import com.trendfit.domain.recommendation.dto.RecommendationResponse;
 import com.trendfit.domain.recommendation.dto.RecommendedItemResponse;
 import com.trendfit.domain.recommendation.entity.RecommendationLog;
 import com.trendfit.domain.recommendation.repository.RecommendationLogRepository;
+import com.trendfit.domain.trend.port.TrendKeywordView;
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -69,7 +71,10 @@ public class RecommendationService {
     private final ImageStorage imageStorage;
     private final NaverShoppingClient naverShoppingClient;
 
-    @Transactional
+    // Claude/날씨/네이버 호출(합쳐서 수초~십수초)이 전부 끝난 뒤에야 마지막에 RecommendationLog
+    // 하나를 저장한다. 여기에 @Transactional을 걸면 그 외부 호출 내내 DB 커넥션을 점유하게 되어
+    // 동시 요청이 늘면 커넥션 풀이 고갈될 수 있다 — 조회/저장은 각각 Spring Data 메서드 단위
+    // 트랜잭션으로 처리되고, 이 메서드 전체를 하나의 원자적 단위로 묶을 필요는 없다.
     public RecommendationResponse requestRecommendation(Long userId, String requestText, Double lat, Double lon) {
         enforceRateLimit(userId);
 
@@ -79,14 +84,19 @@ public class RecommendationService {
         Optional<UserPreferenceView> preference = userPreferencePort.findPreference(userId);
         List<String> styleTags = preference.map(UserPreferenceView::styleTags).orElse(List.of());
         String bodyInfo = preference.map(UserPreferenceView::bodyInfo).orElse(null);
-        String weather = weatherClient.fetchTodayWeather(
-                        lat != null ? lat : DEFAULT_LAT,
-                        lon != null ? lon : DEFAULT_LON)
-                .map(WeatherSummary::toPromptText)
-                .orElse(null);
+
+        // 날씨 조회(외부 HTTP)와 트렌드 키워드 조회는 서로 의존이 없어 병렬로 실행한다.
+        CompletableFuture<String> weatherFuture = CompletableFuture.supplyAsync(() ->
+                weatherClient.fetchTodayWeather(
+                                lat != null ? lat : DEFAULT_LAT,
+                                lon != null ? lon : DEFAULT_LON)
+                        .map(WeatherSummary::toPromptText)
+                        .orElse(null));
+        CompletableFuture<List<TrendKeywordView>> trendFuture =
+                CompletableFuture.supplyAsync(trendQueryPort::findLatestKeywords);
 
         RecommendationContext context = new RecommendationContext(
-                requestText, weather, trendQueryPort.findLatestKeywords(), styleTags, bodyInfo, closetItems);
+                requestText, weatherFuture.join(), trendFuture.join(), styleTags, bodyInfo, closetItems);
 
         RecommendationResult result = recommendationEngine.recommend(context)
                 .orElseThrow(() -> new IllegalStateException("추천을 생성하지 못했습니다. 잠시 후 다시 시도해주세요."));

@@ -33,7 +33,10 @@ public class ClosetService implements ClosetQueryPort, ClosetCommandPort {
     private final ClaudeVisionTagger visionTagger;
     private final ClothingItemRepository clothingItemRepository;
 
-    @Transactional
+    // Claude Vision 호출(수초~십수초)이 끝난 뒤에야 아래 DB 저장이 시작되는데, 여기에
+    // @Transactional을 걸면 그 호출 내내 DB 커넥션을 점유하게 된다. 저장은 아이템 단위로
+    // 이미 독립적(실패해도 해당 아이템만 스킵)이라 Spring Data의 메서드 단위 트랜잭션으로
+    // 충분하고, 클래스 레벨 트랜잭션으로 묶을 원자성 요구가 없다.
     public List<ClothingItem> registerItems(Long userId, List<MultipartFile> images) {
         List<ClothingTagExtraction> extractions = visionTagger.tagAll(images);
 
