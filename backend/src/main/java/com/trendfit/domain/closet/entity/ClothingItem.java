@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 옷장의 핵심 엔티티. (PRD 6.3, 4.2 F2 참고)
@@ -47,6 +49,13 @@ public class ClothingItem {
 
     private String croppedImagePath;
 
+    /** 사용자가 자유롭게 붙이는 해시태그 메모(예: "데이트", "여름"). 추천 프롬프트에
+     * 착용 목적/시기 힌트로 그대로 실린다(toPromptTag 참고). */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "clothing_item_tags", joinColumns = @JoinColumn(name = "clothing_item_id"))
+    @Column(name = "tag")
+    private List<String> tags = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Source source; // DIRECT_UPLOAD(직접 등록) / AUTO_PURCHASE(‘+1 아이템’ 구매 자동 등록)
@@ -82,10 +91,16 @@ public class ClothingItem {
         this.confirmed = true;
     }
 
-    /** 추천 엔진 프롬프트에 주입할 텍스트 직렬화. 예: "[ID:101] 상의/화이트/셔츠/레귤러핏/코튼" */
+    /** 옷장 화면에서 아이템에 자유 텍스트 해시태그를 달거나 뗄 때 호출한다. */
+    public void updateTags(List<String> tags) {
+        this.tags = new ArrayList<>(tags);
+    }
+
+    /** 추천 엔진 프롬프트에 주입할 텍스트 직렬화. 예: "[ID:101] 상의/화이트/셔츠/레귤러핏/코튼 #데이트" */
     public String toPromptTag() {
-        return String.format("[ID:%d] %s/%s/%s/%s/%s",
+        String base = String.format("[ID:%d] %s/%s/%s/%s/%s",
                 id, category, color, pattern, fit, material);
+        return tags.isEmpty() ? base : base + " " + String.join(" ", tags.stream().map(t -> "#" + t).toList());
     }
 
     public enum Category { TOP, BOTTOM, OUTER, DRESS, SHOES, ACCESSORY }

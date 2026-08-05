@@ -6,6 +6,7 @@ import '../config/app_session.dart';
 import '../config/app_theme.dart';
 import '../models/clothing_item.dart';
 import '../services/api_service.dart';
+import '../widgets/ai_loading_indicator.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'closet_confirm_screen.dart';
 import 'closet_upload_screen.dart';
@@ -60,6 +61,18 @@ class _ClosetScreenState extends State<ClosetScreen> {
     if (confirmedAll == true) {
       _reload();
     }
+  }
+
+  /// 아이템 카드를 탭하면 여는 해시태그 편집 시트. 저장되면 목록을 다시 불러온다.
+  Future<void> _openTagEditor(ClothingItem item) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.card))),
+      builder: (context) => _TagEditorSheet(item: item, apiService: _apiService),
+    );
+    if (saved == true) _reload();
   }
 
   @override
@@ -169,48 +182,72 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
   Widget _itemCard(ClothingItem item) {
     final imagePath = item.croppedImagePath ?? item.imagePath;
-    return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.soft),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(color: AppColors.chipBackground),
-            // BoxFit.cover는 카드 비율과 안 맞는(세로로 긴) 사진의 위아래를 잘라내 옷 일부만
-            // 보이게 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다(빈 여백은 배경색).
-            CachedNetworkImage(imageUrl: _apiService.imageUrl(imagePath), fit: BoxFit.contain),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              child: Text(
-                _categoryLabels[item.category] ?? item.category,
-                style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ),
-            if (!item.confirmed)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    child: Text('보정 필요', style: TextStyle(color: AppColors.white, fontSize: 10)),
+    return InkWell(
+      // 눌러서 해시태그(언제/어떤 상황에 입을 옷인지 메모)를 추가할 수 있게 한다.
+      onTap: () => _openTagEditor(item),
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadows.soft),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: AppColors.chipBackground),
+              // BoxFit.cover는 카드 비율과 안 맞는(세로로 긴) 사진의 위아래를 잘라내 옷 일부만
+              // 보이게 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다(빈 여백은 배경색).
+              CachedNetworkImage(imageUrl: _apiService.imageUrl(imagePath), fit: BoxFit.contain),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
                   ),
                 ),
               ),
-          ],
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: 10,
+                child: Text(
+                  _categoryLabels[item.category] ?? item.category,
+                  style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (item.tags.isNotEmpty)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.tag, size: 10, color: AppColors.white),
+                          const SizedBox(width: 2),
+                          Text('${item.tags.length}', style: const TextStyle(color: AppColors.white, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (!item.confirmed)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      child: Text('보정 필요', style: TextStyle(color: AppColors.white, fontSize: 10)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -235,6 +272,126 @@ class _ClosetScreenState extends State<ClosetScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 옷장 아이템 하나에 해시태그(자유 텍스트 메모)를 달거나 떼는 바텀시트.
+/// 저장된 태그는 추천 요청 시 프롬프트에 "#태그" 형태로 그대로 실려 AI가 참고한다
+/// (ClaudeRecommendationEngine.buildPrompt 참고).
+class _TagEditorSheet extends StatefulWidget {
+  const _TagEditorSheet({required this.item, required this.apiService});
+
+  final ClothingItem item;
+  final ApiService apiService;
+
+  @override
+  State<_TagEditorSheet> createState() => _TagEditorSheetState();
+}
+
+class _TagEditorSheetState extends State<_TagEditorSheet> {
+  late final List<String> _tags = List.of(widget.item.tags);
+  final _controller = TextEditingController();
+  bool _saving = false;
+
+  void _addTag() {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _tags.contains(text)) {
+      _controller.clear();
+      return;
+    }
+    setState(() {
+      _tags.add(text);
+      _controller.clear();
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await widget.apiService.updateClothingItemTags(widget.item.id, _tags);
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePath = widget.item.croppedImagePath ?? widget.item.imagePath;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CachedNetworkImage(imageUrl: widget.apiService.imageUrl(imagePath), fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text('해시태그 추가', style: AppTextStyles.headingBold.copyWith(fontSize: 18))),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '언제, 어떤 상황에 입을 옷인지 태그로 남겨두면 AI 추천 요청 시 참고해요.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          if (_tags.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tags
+                  .map((tag) => Chip(
+                        label: Text('#$tag'),
+                        onDeleted: () => setState(() => _tags.remove(tag)),
+                        backgroundColor: AppColors.chipBackground,
+                        side: BorderSide.none,
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(hintText: '예: 데이트, 여름'),
+                  onSubmitted: (_) => _addTag(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(onPressed: _addTag, icon: const Icon(Icons.add_circle, color: AppColors.black)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _save,
+              child: _saving ? const AiLoadingIndicator(dotSize: 5) : const Text('저장'),
+            ),
+          ),
+        ],
       ),
     );
   }

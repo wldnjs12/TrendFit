@@ -10,6 +10,7 @@ import '../models/recommendation_result.dart';
 import '../models/trend_article.dart';
 import '../services/api_service.dart';
 import '../widgets/ai_loading_indicator.dart';
+import '../widgets/outfit_mosaic.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/trendfit_top_bar.dart';
 import 'calendar_screen.dart';
@@ -272,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
             boxShadow: AppShadows.card,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
                 const SizedBox(width: 8),
@@ -283,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                    style: const TextStyle(fontSize: 17, color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
@@ -292,9 +293,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     onSubmitted: (_) => _requestRecommendation(),
                   ),
                 ),
+                // 이전엔 텍스트필드와 버튼 사이 간격이 아예 없어 버튼(검정 배경)이 입력 텍스트에
+                // 바로 맞닿아 붙어 보였다.
+                const SizedBox(width: 10),
                 PressableScale(
                   child: SizedBox(
-                    height: 44,
+                    height: 48,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _requestRecommendation,
                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24)),
@@ -308,7 +312,35 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        _buildSuggestionChips(),
       ],
+    );
+  }
+
+  static const _suggestedQueries = ['오늘 뭐 입지?', '소개팅룩 추천해줘', '출근룩 추천해줘', '데이트룩 추천해줘'];
+
+  // 검색바가 그냥 빈 입력창으로 보이지 않고, 앱의 핵심 기능이라는 걸 바로 체감할 수 있도록
+  // 예시 질문을 탭 한 번으로 채워 넣을 수 있는 칩을 바로 아래 붙였다.
+  Widget _buildSuggestionChips() {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _suggestedQueries.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final query = _suggestedQueries[index];
+          return ActionChip(
+            label: Text(query),
+            onPressed: () => setState(() => _controller.text = query),
+            shape: const StadiumBorder(),
+            side: const BorderSide(color: AppColors.borderLight),
+            backgroundColor: AppColors.white,
+            labelStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+          );
+        },
+      ),
     );
   }
 
@@ -390,8 +422,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final items = result.items;
-    final hero = items.isNotEmpty ? items.first : null;
-    final keyPiece = items.length > 1 ? items[1] : null;
+    // 예전엔 items[0](히어로)/items[1](KEY PIECE)만 각각 다른 비율 박스에 BoxFit.cover로
+    // 넣어서 세로로 긴 하의 사진이 심하게 확대/크롭됐고, items[2] 이후는 아예 표시되지도
+    // 않았다. OutfitMosaic로 전체 아이템을 한 카드에서 옷 전체가 보이게(BoxFit.contain)
+    // 보여준다 — 캘린더 위클리 아카이브와 동일한 시각 언어.
+    final imageUrls = items
+        .map((item) => item.croppedImagePath)
+        .whereType<String>()
+        .map(_apiService.imageUrl)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,8 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 fit: StackFit.expand,
                 children: [
                   Container(color: AppColors.chipBackground),
-                  if (hero?.croppedImagePath != null)
-                    CachedNetworkImage(imageUrl: _apiService.imageUrl(hero!.croppedImagePath!), fit: BoxFit.cover),
+                  if (imageUrls.isNotEmpty) OutfitMosaic(imageUrls: imageUrls),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -444,38 +482,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        if (keyPiece != null) ...[
-          const SizedBox(height: 24),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              border: Border.all(color: AppColors.borderSubtle),
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              boxShadow: AppShadows.soft,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('TODAY\'S KEY PIECE', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(keyPiece.category, style: AppTextStyles.headingBold),
-                  const SizedBox(height: 16),
-                  if (keyPiece.croppedImagePath != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                      child: SizedBox(
-                        height: 180,
-                        width: double.infinity,
-                        child: CachedNetworkImage(imageUrl: _apiService.imageUrl(keyPiece.croppedImagePath!), fit: BoxFit.cover),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
         if (result.plusOne != null) ...[
           const SizedBox(height: 24),
           DecoratedBox(

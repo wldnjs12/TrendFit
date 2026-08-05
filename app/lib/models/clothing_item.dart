@@ -9,6 +9,7 @@ class ClothingItem {
   final String? material;
   final String imagePath;
   final String? croppedImagePath;
+  final List<String> tags;
   final bool confirmed;
 
   ClothingItem({
@@ -20,6 +21,7 @@ class ClothingItem {
     this.material,
     required this.imagePath,
     this.croppedImagePath,
+    this.tags = const [],
     required this.confirmed,
   });
 
@@ -33,6 +35,7 @@ class ClothingItem {
       material: json['material'],
       imagePath: json['imagePath'],
       croppedImagePath: json['croppedImagePath'],
+      tags: (json['tags'] as List?)?.cast<String>() ?? const [],
       confirmed: json['confirmed'] ?? false,
     );
   }

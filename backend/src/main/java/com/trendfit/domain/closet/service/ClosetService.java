@@ -84,6 +84,14 @@ public class ClosetService implements ClosetQueryPort, ClosetCommandPort {
         return item;
     }
 
+    @Transactional
+    public ClothingItem updateTags(Long id, List<String> tags) {
+        ClothingItem item = clothingItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 옷장 아이템: " + id));
+        item.updateTags(tags);
+        return item;
+    }
+
     @Transactional(readOnly = true)
     public List<ClothingItem> getItems(Long userId) {
         return clothingItemRepository.findAllByUserId(userId);
@@ -100,7 +108,8 @@ public class ClosetService implements ClosetQueryPort, ClosetCommandPort {
                         item.getPattern(),
                         item.getFit() == null ? null : item.getFit().name(),
                         item.getMaterial(),
-                        item.getCroppedImagePath()))
+                        item.getCroppedImagePath(),
+                        item.getTags()))
                 .toList();
     }
 

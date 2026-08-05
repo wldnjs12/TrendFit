@@ -186,6 +186,18 @@ class ApiService {
     return ClothingItem.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
   }
 
+  Future<ClothingItem> updateClothingItemTags(int itemId, List<String> tags) async {
+    final res = await _withAuthRetry(() => http.patch(
+          Uri.parse('$baseUrl/api/closet/items/$itemId/tags'),
+          headers: _authHeaders,
+          body: jsonEncode({'tags': tags}),
+        ));
+    if (res.statusCode != 200) {
+      throw _apiError(res);
+    }
+    return ClothingItem.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+  }
+
   /// [lat]/[lon]을 생략하면 서버가 서울시청 좌표를 기본값으로 쓴다(RecommendationRequest 참고).
   Future<RecommendationResult> requestRecommendation(int userId, String requestText, {double? lat, double? lon}) async {
     final res = await _withAuthRetry(() => http.post(

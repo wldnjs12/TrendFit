@@ -2,6 +2,7 @@ package com.trendfit.domain.closet.controller;
 
 import com.trendfit.domain.closet.dto.ClothingItemConfirmRequest;
 import com.trendfit.domain.closet.dto.ClothingItemResponse;
+import com.trendfit.domain.closet.dto.ClothingItemTagsRequest;
 import com.trendfit.domain.closet.service.ClosetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -39,5 +40,11 @@ public class ClosetController {
         return closetService.getItems(userId).stream()
                 .map(ClothingItemResponse::from)
                 .toList();
+    }
+
+    @PatchMapping("/items/{id}/tags")
+    public ClothingItemResponse updateTags(@PathVariable Long id,
+                                            @RequestBody ClothingItemTagsRequest request) {
+        return ClothingItemResponse.from(closetService.updateTags(id, request.tags()));
     }
 }

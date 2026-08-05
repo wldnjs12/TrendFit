@@ -92,7 +92,8 @@ public class ClaudeRecommendationEngine {
         for (ClosetItemView item : context.closetItems()) {
             sb.append(item.toPromptTag()).append("\n");
         }
-        sb.append("\n");
+        sb.append("아이템 뒤 #으로 표시된 태그는 사용자가 직접 남긴 착용 목적/시기 메모다"
+                + "(예: #데이트, #여름). 사용자 요청과 관련 있는 태그가 붙은 아이템이 있으면 우선 고려하라.\n\n");
 
         sb.append("[사용자 요청]\n").append(context.requestText()).append("\n\n");
 
