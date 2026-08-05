@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  *   프롬프트에 주입한다. 이미지 자체는 프롬프트에 포함되지 않는다(비용 최적화, PRD 6.5).
  */
 @Entity
-@Table(name = "clothing_items")
+@Table(name = "clothing_items", indexes = @Index(name = "idx_clothing_items_user_id", columnList = "user_id"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClothingItem {

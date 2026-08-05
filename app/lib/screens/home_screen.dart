@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
@@ -212,10 +213,10 @@ class _HomeScreenState extends State<HomeScreen> {
             fit: StackFit.expand,
             children: [
               Container(color: AppColors.chipBackground),
-              Image.network(
-                article.imageUrl,
+              CachedNetworkImage(
+                imageUrl: article.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                errorWidget: (context, url, error) => const SizedBox.shrink(),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -354,10 +355,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Container(color: AppColors.chipBackground),
                 // 아직 추천 결과가 없을 때 보여주는 예시 이미지(임시 무드 사진).
-                Image.network(
-                  'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&q=80&auto=format&fit=crop',
+                CachedNetworkImage(
+                  imageUrl: 'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&q=80&auto=format&fit=crop',
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorWidget: (context, url, error) => const SizedBox.shrink(),
                 ),
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -406,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Container(color: AppColors.chipBackground),
                   if (hero?.croppedImagePath != null)
-                    Image.network(_apiService.imageUrl(hero!.croppedImagePath!), fit: BoxFit.cover),
+                    CachedNetworkImage(imageUrl: _apiService.imageUrl(hero!.croppedImagePath!), fit: BoxFit.cover),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -467,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: SizedBox(
                         height: 180,
                         width: double.infinity,
-                        child: Image.network(_apiService.imageUrl(keyPiece.croppedImagePath!), fit: BoxFit.cover),
+                        child: CachedNetworkImage(imageUrl: _apiService.imageUrl(keyPiece.croppedImagePath!), fit: BoxFit.cover),
                       ),
                     ),
                 ],
@@ -487,12 +488,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (result.plusOne!.productImageUrl != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.button),
-                      child: Image.network(
-                        result.plusOne!.productImageUrl!,
+                      child: CachedNetworkImage(
+                        imageUrl: result.plusOne!.productImageUrl!,
                         width: 64,
                         height: 64,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        errorWidget: (context, url, error) => const SizedBox.shrink(),
                       ),
                     ),
                     const SizedBox(width: 16),

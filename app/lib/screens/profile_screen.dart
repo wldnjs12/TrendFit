@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
@@ -285,10 +286,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 64,
                   color: AppColors.chipBackground,
                   child: profileImageUrl != null
-                      ? Image.network(
-                          _apiService.imageUrl(profileImageUrl),
+                      ? CachedNetworkImage(
+                          imageUrl: _apiService.imageUrl(profileImageUrl),
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          errorWidget: (context, url, error) =>
                               const Icon(Icons.person, color: AppColors.textTertiary, size: 32),
                         )
                       : const Icon(Icons.person, color: AppColors.textTertiary, size: 32),

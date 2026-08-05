@@ -20,6 +20,8 @@ dependencies:
   flutter_animate: ^4.5.0 # 화면 전환/진입/탭 피드백 애니메이션
   url_launcher: ^6.3.1 # 트렌드 기사 원문 / 네이버쇼핑 구매 링크 외부 브라우저로 열기
   share_plus: ^12.0.2 # 위클리 리포트 이미지 저장/공유 (모바일 경로, 웹은 dart:html 다운로드)
+  cached_network_image: ^3.4.1 # 옷 사진 디스크 캐싱 — 백엔드가 이미지에 immutable 캐시 헤더를
+    # 주므로(ImageController), 화면을 오갈 때마다 같은 사진을 재다운로드하지 않게 한다
 
 dev_dependencies:
   flutter_test:

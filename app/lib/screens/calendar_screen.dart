@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
@@ -290,7 +291,7 @@ class CalendarScreenState extends State<CalendarScreen> {
         children: [
             Container(color: AppColors.chipBackground),
             if (wornUrl != null)
-              Image.network(_apiService.imageUrl(wornUrl), fit: BoxFit.cover)
+              CachedNetworkImage(imageUrl: _apiService.imageUrl(wornUrl), fit: BoxFit.cover)
             else if (outfitUrls.isNotEmpty)
               OutfitMosaic(imageUrls: outfitUrls)
             else

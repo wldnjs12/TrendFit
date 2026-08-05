@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -196,13 +197,13 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
                   // 잘라내 옷 일부만 보이게 만든다 — 옷 전체가 항상 보이도록 contain으로
                   // 채운다(빈 여백은 배경색).
                   if (item.croppedImagePath != null)
-                    Image.network(apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.contain)
+                    CachedNetworkImage(imageUrl: apiService.imageUrl(item.croppedImagePath!), fit: BoxFit.contain)
                   else
                     // 옷장 사진이 없을 때 대체하는 예시 이미지.
-                    Image.network(
-                      'https://images.unsplash.com/photo-1467043237213-65f2da53396f?w=400&q=80&auto=format&fit=crop',
+                    CachedNetworkImage(
+                      imageUrl: 'https://images.unsplash.com/photo-1467043237213-65f2da53396f?w=400&q=80&auto=format&fit=crop',
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      errorWidget: (context, url, error) => const SizedBox.shrink(),
                     ),
                   Positioned(
                     left: 16,
@@ -249,12 +250,12 @@ class _RecommendationResultScreenState extends State<RecommendationResultScreen>
             if (plusOne.productImageUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.button),
-                child: Image.network(
-                  plusOne.productImageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: plusOne.productImageUrl!,
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorWidget: (context, url, error) => const SizedBox.shrink(),
                 ),
               ),
               const SizedBox(height: 16),

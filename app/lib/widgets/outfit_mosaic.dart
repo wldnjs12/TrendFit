@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../config/app_theme.dart';
@@ -16,7 +17,7 @@ class OutfitMosaic extends StatelessWidget {
     // BoxFit.cover는 타일 비율과 안 맞는(세로로 긴) 사진의 위아래를 잘라내 옷 일부만 보이게
     // 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다.
     if (imageUrls.length == 1) {
-      return ColoredBox(color: AppColors.chipBackground, child: Image.network(imageUrls.single, fit: BoxFit.contain));
+      return ColoredBox(color: AppColors.chipBackground, child: CachedNetworkImage(imageUrl: imageUrls.single, fit: BoxFit.contain));
     }
     final rows = <Widget>[];
     for (var i = 0; i < imageUrls.length; i += 2) {
@@ -30,7 +31,7 @@ class OutfitMosaic extends StatelessWidget {
               Expanded(
                 child: ColoredBox(
                   color: AppColors.chipBackground,
-                  child: Image.network(rowUrls[j], fit: BoxFit.contain),
+                  child: CachedNetworkImage(imageUrl: rowUrls[j], fit: BoxFit.contain),
                 ),
               ),
             ],

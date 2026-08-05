@@ -4,6 +4,7 @@ import com.trendfit.domain.trend.port.TrendKeywordView;
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.trend.repository.TrendKeywordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,10 @@ public class TrendQueryService implements TrendQueryPort {
 
     private final TrendKeywordRepository trendKeywordRepository;
 
+    // 새벽 배치(TrendCollectionScheduler)로만 갱신되는데 추천 요청마다 DB를 조회하고 있었다.
+    // 배치가 끝나면 TrendCollectionScheduler가 이 캐시를 비운다.
     @Override
+    @Cacheable("trendKeywords")
     @Transactional(readOnly = true)
     public List<TrendKeywordView> findLatestKeywords() {
         return trendKeywordRepository.findTop20ByOrderByCollectedDateDesc().stream()

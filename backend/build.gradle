@@ -26,6 +26,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
+	// 캐싱: 배치로만 갱신되는 트렌드 키워드, 좌표+날짜로 사실상 불변인 날씨 응답을 인메모리로
+	// 캐싱한다(MVP 트래픽 규모 — Redis 등 별도 인프라 불필요, global.config.CacheConfig 참고)
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
 	// 인증: Google OAuth2 로그인 + JWT 세션 (conventions.md §4 결정)
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

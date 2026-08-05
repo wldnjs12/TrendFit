@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
@@ -173,11 +174,11 @@ class _StylePreferenceScreenState extends State<StylePreferenceScreen> {
         children: [
           DecoratedBox(decoration: BoxDecoration(color: tone)),
           if (kStyleTagImages[tag] != null)
-            Image.network(
-              kStyleTagImages[tag]!,
+            CachedNetworkImage(
+              imageUrl: kStyleTagImages[tag]!,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) => progress == null ? child : const SizedBox.shrink(),
-              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              placeholder: (context, url) => const SizedBox.shrink(),
+              errorWidget: (context, url, error) => const SizedBox.shrink(),
             ),
           AnimatedContainer(
             duration: AppMotion.fast,

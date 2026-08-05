@@ -24,7 +24,10 @@ import java.time.ZoneId;
  * 캘린더에서 직접 선택한 날짜가 forDate가 된다.
  */
 @Entity
-@Table(name = "recommendation_logs")
+@Table(name = "recommendation_logs", indexes = {
+        @Index(name = "idx_reco_logs_user_created", columnList = "user_id, created_at"),
+        @Index(name = "idx_reco_logs_user_confirmed_fordate", columnList = "user_id, confirmed, for_date")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RecommendationLog {

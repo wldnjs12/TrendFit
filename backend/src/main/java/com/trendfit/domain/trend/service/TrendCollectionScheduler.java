@@ -4,6 +4,7 @@ import com.trendfit.domain.trend.entity.TrendKeyword;
 import com.trendfit.domain.trend.repository.TrendKeywordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,8 @@ public class TrendCollectionScheduler {
     private final ClaudeTrendRefiner trendRefiner;
     private final TrendKeywordRepository trendKeywordRepository;
 
+    // TrendQueryService.findLatestKeywords()의 캐시를 새 배치 결과로 갱신한다.
+    @CacheEvict(value = "trendKeywords", allEntries = true)
     @Scheduled(cron = "${trendfit.trend-batch.cron}")
     public void collectDailyTrends() {
         log.info("[TrendCollectionScheduler] 트렌드 배치 시작");

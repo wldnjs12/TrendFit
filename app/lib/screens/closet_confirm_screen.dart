@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../config/app_config.dart';
@@ -121,7 +122,7 @@ class _ClosetConfirmScreenState extends State<ClosetConfirmScreen> {
                     decoration: BoxDecoration(boxShadow: AppShadows.card, color: AppColors.chipBackground),
                     // BoxFit.cover는 세로로 긴 사진의 위아래를 잘라내 옷 일부만 보이게
                     // 만든다 — 옷 전체가 항상 보이도록 contain으로 채운다(빈 여백은 배경색).
-                    child: Image.network(_apiService.imageUrl(imagePath), fit: BoxFit.contain),
+                    child: CachedNetworkImage(imageUrl: _apiService.imageUrl(imagePath), fit: BoxFit.contain),
                   ),
                 ),
                 const SizedBox(height: 28),

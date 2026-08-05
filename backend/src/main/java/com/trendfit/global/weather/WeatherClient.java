@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trendfit.global.config.TimeoutRestClientFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -38,6 +39,9 @@ public class WeatherClient {
     private final ObjectMapper objectMapper;
     private final RestClient restClient = TimeoutRestClientFactory.create(Duration.ofSeconds(3), Duration.ofSeconds(5));
 
+    // 같은 좌표 격자 + 같은 날짜면 응답이 동일한데 추천 요청마다 외부 API를 다시 불렀다.
+    // 날짜가 바뀌면 키가 자연히 바뀌어 별도 evict 없이도 매일 새로 조회된다.
+    @Cacheable(value = "weather", key = "#lat + '_' + #lon + '_' + T(java.time.LocalDate).now(T(java.time.ZoneId).of('Asia/Seoul'))")
     public Optional<WeatherSummary> fetchTodayWeather(double lat, double lon) {
         try {
             GridCoordinate grid = GridConverter.toGrid(lat, lon);
