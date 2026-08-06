@@ -15,8 +15,8 @@ import com.trendfit.domain.trend.port.TrendKeywordView;
 import com.trendfit.domain.trend.port.TrendQueryPort;
 import com.trendfit.domain.user.port.UserPreferencePort;
 import com.trendfit.domain.user.port.UserPreferenceView;
-import com.trendfit.global.shopping.NaverProductView;
-import com.trendfit.global.shopping.NaverShoppingClient;
+import com.trendfit.global.shopping.ElevenStShoppingClient;
+import com.trendfit.global.shopping.ShoppingProductView;
 import com.trendfit.global.storage.ImageStorage;
 import com.trendfit.global.storage.ImageUrls;
 import com.trendfit.global.weather.WeatherClient;
@@ -69,7 +69,7 @@ public class RecommendationService {
     private final RecommendationLogRepository recommendationLogRepository;
     private final ObjectMapper objectMapper;
     private final ImageStorage imageStorage;
-    private final NaverShoppingClient naverShoppingClient;
+    private final ElevenStShoppingClient elevenStShoppingClient;
 
     // Claude/날씨/네이버 호출(합쳐서 수초~십수초)이 전부 끝난 뒤에야 마지막에 RecommendationLog
     // 하나를 저장한다. 여기에 @Transactional을 걸면 그 외부 호출 내내 DB 커넥션을 점유하게 되어
@@ -127,17 +127,17 @@ public class RecommendationService {
                 result.plusOne() == null ? null : buildPlusOneResponse(result.plusOne()));
     }
 
-    /** '+1 아이템' 추천명으로 네이버쇼핑에서 실제 구매 가능한 상품을 찾아 함께 내려준다(A6). */
+    /** '+1 아이템' 추천명으로 11번가에서 실제 구매 가능한 상품을 찾아 함께 내려준다(A6). */
     private PlusOneResponse buildPlusOneResponse(PlusOneSuggestion plusOne) {
-        Optional<NaverProductView> product = naverShoppingClient.search(plusOne.itemName());
+        Optional<ShoppingProductView> product = elevenStShoppingClient.search(plusOne.itemName());
         return new PlusOneResponse(
                 plusOne.itemName(),
                 plusOne.reason(),
                 plusOne.category(),
-                product.map(NaverProductView::link).orElse(null),
-                product.map(NaverProductView::imageUrl).orElse(null),
-                product.map(NaverProductView::mallName).orElse(null),
-                product.map(NaverProductView::lowPrice).orElse(null));
+                product.map(ShoppingProductView::link).orElse(null),
+                product.map(ShoppingProductView::imageUrl).orElse(null),
+                product.map(ShoppingProductView::mallName).orElse(null),
+                product.map(ShoppingProductView::lowPrice).orElse(null));
     }
 
     /** 캘린더(위클리 아카이브) — weekStart(월요일)부터 7일치 추천 이력을 날짜순으로 반환한다. */

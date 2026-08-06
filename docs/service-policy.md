@@ -90,9 +90,9 @@ TrendFit의 정책을 회원 / 옷장 / 트렌드 수집 / 추천 / 구매 연�
 
 | 항목 | 정책 |
 |---|---|
-| '+1 아이템' 표시 | 추천 결과에 네이버쇼핑 검색 API로 조회한 실제 상품(이미지/가격/구매링크) 카드로 함께 제안 (A6, 2026-07-29 결정) |
-| 제휴 방식 | 네이버쇼핑 검색 API는 무료 공개 API라 수수료 없음 — 수익 모델이 아닌 "실제 구매 가능한 상품 노출"이 목적 |
-| 자동 등록 | 🔸 미정 — 네이버쇼핑 API는 구매 확정 콜백을 제공하지 않아 `ClosetCommandPort`를 통한 `ClothingItem`(source=AUTO_PURCHASE) 자동 생성 방식은 별도 결정 필요 → [open-decisions.md](open-decisions.md) A6 |
+| '+1 아이템' 표시 | 상품 검색 연동을 보류(A6, 2026-08-06)해 현재는 상품 카드(이미지/가격/구매링크) 없이 아이템명/이유만 텍스트로 제안. 네이버쇼핑 API(종료)·11번가 오픈API(셀러 전용이라 접근 불가)를 순서대로 시도했으나 둘 다 무산됨 → [open-decisions.md](open-decisions.md) A6 |
+| 제휴 방식 | 보류 — 현재 연동된 쇼핑 검색 API 없음 |
+| 자동 등록 | 🔸 미정 — 실시간 상품 검색 연동 자체가 보류 상태라 `ClosetCommandPort`를 통한 `ClothingItem`(source=AUTO_PURCHASE) 자동 생성 방식도 함께 보류 → [open-decisions.md](open-decisions.md) A6 |
 
 ---
 
